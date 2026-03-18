@@ -1,4 +1,4 @@
-"""Sidebar widget with project list and actions."""
+"""Sidebar widget with project list."""
 
 from __future__ import annotations
 
@@ -8,15 +8,6 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.message import Message
 from textual.widgets import Static
-
-
-class ProjectSelected(Message):
-    """Emitted when the user selects a different project."""
-
-    def __init__(self, name: str, path: str) -> None:
-        super().__init__()
-        self.name = name
-        self.path = path
 
 
 class Sidebar(Vertical):
@@ -30,6 +21,9 @@ class Sidebar(Vertical):
         border-right: solid #30363d;
         padding: 1;
     }
+    Sidebar.focused-mode {
+        border-right: solid #58a6ff;
+    }
     Sidebar .sb-title {
         color: #58a6ff;
         text-style: bold;
@@ -41,21 +35,34 @@ class Sidebar(Vertical):
         height: 1;
         margin-top: 1;
     }
+    Sidebar .sb-section-active {
+        color: #58a6ff;
+        text-style: bold;
+        height: 1;
+        margin-top: 1;
+    }
     Sidebar .sb-item {
-        color: #c9d1d9;
+        color: #6e7681;
         padding-left: 1;
         height: 1;
     }
-    Sidebar .sb-item-active {
-        color: #58a6ff;
+    Sidebar .sb-item-current {
+        color: #c9d1d9;
         text-style: bold;
         padding-left: 1;
         height: 1;
     }
+    Sidebar .sb-item-hover {
+        color: #58a6ff;
+        text-style: bold;
+        padding-left: 1;
+        height: 1;
+        background: #0d419f;
+    }
     Sidebar .sb-hint {
         color: #6e7681;
         margin-top: 1;
-        height: 1;
+        height: auto;
     }
     """
 
@@ -66,30 +73,62 @@ class Sidebar(Vertical):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.projects = projects or []  # [{"name": ..., "path": ...}]
+        self.projects = projects or []
         self.current_project = current
+        self._focused_mode = False
+        self._hover_index = -1
 
     def compose(self) -> ComposeResult:
         yield Static("[bold cyan]wt-board[/]", classes="sb-title")
-        yield Static("Projects", classes="sb-section")
+        yield Static("Projects", id="sb-section-label", classes="sb-section")
         yield Vertical(id="sb-project-list")
-        yield Static("[dim]P add  S switch[/]", classes="sb-hint")
+        yield Static("[dim]n 추가  x 삭제[/]", classes="sb-hint")
 
     def on_mount(self) -> None:
         self._render_projects()
 
     def _render_projects(self) -> None:
-        container = self.query_one("#sb-project-list", Vertical)
+        try:
+            container = self.query_one("#sb-project-list", Vertical)
+        except Exception:
+            return
         container.remove_children()
         if not self.projects:
             container.mount(Static(" [dim](none)[/]", classes="sb-item"))
-        else:
-            for proj in self.projects:
-                name = proj.get("name", "")
-                if name == self.current_project:
-                    container.mount(Static(f" [green]▶[/] {name}", classes="sb-item-active"))
-                else:
-                    container.mount(Static(f"   {name}", classes="sb-item"))
+            return
+        for i, proj in enumerate(self.projects):
+            name = proj.get("name", "")
+            if self._focused_mode and i == self._hover_index:
+                container.mount(Static(f" [bold cyan]▶[/] {name}", classes="sb-item-hover"))
+            elif name == self.current_project:
+                container.mount(Static(f" [green]▶[/] {name}", classes="sb-item-current"))
+            else:
+                container.mount(Static(f"   {name}", classes="sb-item"))
+
+    def set_focused_mode(self, focused: bool, hover_index: int = -1) -> None:
+        """Toggle sidebar focus mode with visual feedback."""
+        self._focused_mode = focused
+        self._hover_index = hover_index
+        self.set_class(focused, "focused-mode")
+        # Update section label
+        try:
+            label = self.query_one("#sb-section-label", Static)
+            if focused:
+                label.update("[bold cyan]Projects ◀[/]")
+                label.set_class(True, "sb-section-active")
+                label.set_class(False, "sb-section")
+            else:
+                label.update("Projects")
+                label.set_class(False, "sb-section-active")
+                label.set_class(True, "sb-section")
+        except Exception:
+            pass
+        self._render_projects()
+
+    def set_hover(self, index: int) -> None:
+        """Update which project is hovered."""
+        self._hover_index = index
+        self._render_projects()
 
     def refresh_projects(self, projects: List[dict], current: str) -> None:
         """Rebuild the project list."""

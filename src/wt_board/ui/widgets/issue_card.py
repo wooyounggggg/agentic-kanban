@@ -13,41 +13,33 @@ from wt_board.models.agent import AgentStatus
 
 
 _AGENT_BADGE = {
-    AgentStatus.ACTIVE: "[bold cyan] A [/]",
-    AgentStatus.COMPLETED: "[dim green] done [/]",
-    AgentStatus.ERROR: "[bold red] ERR [/]",
+    AgentStatus.ACTIVE: " [bold green]●[/]",
+    AgentStatus.COMPLETED: " [dim green]✓[/]",
+    AgentStatus.ERROR: " [bold red]✗[/]",
     AgentStatus.IDLE: "",
 }
 
-_MAX_TITLE = 32
+_MAX_TITLE = 36
 
 
 class IssueCard(Static):
-    """A compact card representing one Issue.
-
-    Attributes
-    ----------
-    selected:
-        Whether this card is the currently focused card.
-    """
+    """A compact card representing one Issue."""
 
     DEFAULT_CSS = """
     IssueCard {
         height: auto;
         padding: 0 1;
         margin: 0 0 1 0;
-        border: tall $surface-darken-1;
-        background: $surface;
+        border: tall #21262d;
+        background: #161b22;
     }
-
     IssueCard:focus {
-        border: tall $accent;
-        background: $surface-lighten-1;
+        border: tall #58a6ff;
+        background: #0d419f;
     }
-
     IssueCard.selected {
-        border: tall $accent;
-        background: $surface-lighten-1;
+        border: tall #58a6ff;
+        background: #0d419f;
     }
     """
 
@@ -58,16 +50,14 @@ class IssueCard(Static):
         issue: Issue,
         tc_progress: str = "",
         agent_status: str = AgentStatus.IDLE,
+        status_icon: str = "",
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.issue = issue
         self.tc_progress = tc_progress
         self._agent_status = agent_status
-
-    # ------------------------------------------------------------------
-    # Rendering
-    # ------------------------------------------------------------------
+        self._status_icon = status_icon
 
     def _build_markup(self) -> str:
         from rich.markup import escape
@@ -76,38 +66,38 @@ class IssueCard(Static):
         if len(title) > _MAX_TITLE:
             title = title[:_MAX_TITLE - 1] + "\u2026"
 
+        # Line 1: ticket + title + agent badge
         badge = _AGENT_BADGE.get(self._agent_status, "")
-        tc = f" [dim]{self.tc_progress}[/]" if self.tc_progress else ""
+        line1 = f"[bold cyan]#{ticket}[/] {title}{badge}"
 
-        assignee_line = ""
+        # Line 2: status + assignee + TC
+        parts = []
+        if self._status_icon:
+            parts.append(f"{self._status_icon}")
         if self.issue.assignee:
-            assignee_line = f"\n[dim italic]{self.issue.assignee}[/]"
+            parts.append(f"[dim]@{escape(self.issue.assignee)}[/]")
+        if self.tc_progress:
+            parts.append(f"[dim]{self.tc_progress} TC[/]")
+        if self.issue.labels:
+            tags = " ".join(f"[dim magenta]{escape(t)}[/]" for t in self.issue.labels[:3])
+            parts.append(tags)
 
-        return f"[bold cyan]#{ticket}[/] {title}{tc}{badge}{assignee_line}"
+        line2 = ""
+        if parts:
+            line2 = "\n" + "  ".join(parts)
+
+        return line1 + line2
 
     def render(self) -> str:
         return self._build_markup()
-
-    # ------------------------------------------------------------------
-    # Reactivity
-    # ------------------------------------------------------------------
 
     def watch_selected(self, value: bool) -> None:
         self.set_class(value, "selected")
         if value:
             self.focus()
 
-    # ------------------------------------------------------------------
-    # Properties
-    # ------------------------------------------------------------------
-
-    # ------------------------------------------------------------------
-    # Mouse
-    # ------------------------------------------------------------------
-
     class Clicked(Message):
         """Emitted when this card is clicked."""
-
         def __init__(self, card: "IssueCard") -> None:
             super().__init__()
             self.card = card

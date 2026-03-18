@@ -41,14 +41,13 @@ class BoardScreen(Screen):
     """Main kanban board: sidebar + columns + footer."""
 
     BINDINGS = [
-        Binding("n", "new_issue", "New Issue"),
-        Binding("enter", "open_detail", "Detail"),
+        Binding("n", "new_issue", "New"),
+        Binding("enter", "open_detail", "Open"),
         Binding("a", "start_agent", "Agent"),
         Binding("m", "move_card", "Move"),
         Binding("s", "sync", "Sync"),
+        Binding("x", "delete_item", "Delete"),
         Binding("/", "search", "Search"),
-        Binding("P", "add_project", "Add Project"),
-        Binding("S", "switch_project", "Switch Project"),
         Binding("left,h", "col_left", "Left", show=False),
         Binding("right,l", "col_right", "Right", show=False),
         Binding("up,k", "card_up", "Up", show=False),
@@ -249,7 +248,7 @@ class BoardScreen(Screen):
     def action_card_up(self) -> None:
         if self._sidebar_focused:
             self._sidebar_index = max(0, self._sidebar_index - 1)
-            self._highlight_sidebar()
+            self._switch_to_sidebar_project()
             return
         self.card_index = max(0, self.card_index - 1)
         self._clamp_card()
@@ -258,7 +257,7 @@ class BoardScreen(Screen):
         if self._sidebar_focused:
             max_idx = len(self._registry.projects) - 1
             self._sidebar_index = min(max_idx, self._sidebar_index + 1)
-            self._highlight_sidebar()
+            self._switch_to_sidebar_project()
             return
         col = self._current_column()
         if col is None:
@@ -273,38 +272,52 @@ class BoardScreen(Screen):
     def _focus_sidebar(self) -> None:
         """사이드바로 포커스 이동."""
         self._sidebar_focused = True
-        # 현재 프로젝트를 찾아서 인덱스 설정
         names = self._registry.names()
         if self._registry.current in names:
             self._sidebar_index = names.index(self._registry.current)
         else:
             self._sidebar_index = 0
-        # 보드 카드 선택 해제
         for col in self._columns():
             col.set_focused_card(-1)
-        self._highlight_sidebar()
+        try:
+            sidebar = self.query_one("#sidebar", Sidebar)
+            sidebar.set_focused_mode(True, self._sidebar_index)
+        except Exception:
+            pass
 
     def _exit_sidebar(self) -> None:
         """사이드바에서 보드로 복귀."""
         self._sidebar_focused = False
-        self._highlight_sidebar()  # 사이드바 하이라이트 제거
+        try:
+            sidebar = self.query_one("#sidebar", Sidebar)
+            sidebar.set_focused_mode(False)
+        except Exception:
+            pass
         self.col_index = self._next_nonempty_col(-1, +1)
         self.card_index = 0
         self._highlight_current()
 
-    def _highlight_sidebar(self) -> None:
-        """사이드바 프로젝트 목록 하이라이트 갱신."""
+    def _switch_to_sidebar_project(self) -> None:
+        """↑↓로 사이드바 프로젝트를 이동하면 즉시 전환."""
+        names = self._registry.names()
+        if not names or self._sidebar_index >= len(names):
+            return
+        selected = names[self._sidebar_index]
+        # 사이드바 하이라이트 갱신
         try:
             sidebar = self.query_one("#sidebar", Sidebar)
-            proj_list = [{"name": p.name, "path": p.path} for p in self._registry.projects]
-            # 포커스 중이면 선택 인덱스를 current처럼 표시
-            if self._sidebar_focused and proj_list:
-                display_current = proj_list[self._sidebar_index]["name"]
-            else:
-                display_current = self._registry.current
-            sidebar.refresh_projects(proj_list, display_current)
+            sidebar.set_hover(self._sidebar_index)
         except Exception:
             pass
+        # 프로젝트 전환
+        entry = self._registry.switch(selected)
+        if entry:
+            self.board_path = str(Path(entry.path) / ".board")
+            self._issues_by_status.clear()
+            self._tc_map.clear()
+            self._agent_map.clear()
+            self._load_data()
+            self._rebuild_board()
 
     def _highlight_current(self) -> None:
         cols = self._columns()
@@ -316,20 +329,8 @@ class BoardScreen(Screen):
 
     def action_open_detail(self) -> None:
         if self._sidebar_focused:
-            # 사이드바에서 Enter → 프로젝트 전환
-            names = self._registry.names()
-            if 0 <= self._sidebar_index < len(names):
-                selected = names[self._sidebar_index]
-                entry = self._registry.switch(selected)
-                if entry:
-                    self.board_path = str(Path(entry.path) / ".board")
-                    self._issues_by_status.clear()
-                    self._tc_map.clear()
-                    self._agent_map.clear()
-                    self._load_data()
-                    self._rebuild_board()
-                    self._exit_sidebar()
-                    self.notify(f"프로젝트 [cyan]{selected}[/]로 전환.", severity="information")
+            # 사이드바에서 Enter → 보드로 복귀
+            self._exit_sidebar()
             return
         issue = self._current_issue()
         if issue is None:
@@ -358,7 +359,65 @@ class BoardScreen(Screen):
         except Exception:
             return None
 
+    def action_delete_item(self) -> None:
+        """x키 — 사이드바: 프로젝트 삭제, 보드: (미구현)"""
+        if self._sidebar_focused:
+            names = self._registry.names()
+            if not names or self._sidebar_index >= len(names):
+                return
+            target = names[self._sidebar_index]
+            if self._registry.remove(target):
+                self._sidebar_index = max(0, self._sidebar_index - 1)
+                self._switch_to_sidebar_project()
+                try:
+                    sidebar = self.query_one("#sidebar", Sidebar)
+                    proj_list = [{"name": p.name, "path": p.path} for p in self._registry.projects]
+                    sidebar.projects = proj_list
+                    sidebar.current_project = self._registry.current
+                    sidebar.set_hover(self._sidebar_index)
+                except Exception:
+                    pass
+                self.notify(f"프로젝트 [cyan]{target}[/] 삭제.", severity="information")
+            return
+        self.notify("이슈 삭제는 아직 미구현입니다.", severity="warning")
+
     def action_new_issue(self) -> None:
+        if self._sidebar_focused:
+            # 사이드바에서 n → 프로젝트 추가
+            from wt_board.ui.screens.create_dialog import AddProjectDialog
+            def on_result(result) -> None:
+                if result is None:
+                    return
+                name = result["name"]
+                path = result["path"]
+                wt_base = result.get("worktree_base", "worktrees")
+                dooray_pid = result.get("dooray_project_id", "")
+                self._registry.add(name, path)
+                board_dir = Path(path) / ".board"
+                if not board_dir.exists():
+                    from wt_board.models.config import BoardConfig
+                    board_dir.mkdir(parents=True)
+                    (board_dir / "issues").mkdir(exist_ok=True)
+                    (board_dir / "archive").mkdir(exist_ok=True)
+                    (board_dir / "cache").mkdir(exist_ok=True)
+                    config = BoardConfig()
+                    config.project.name = name
+                    config.project.worktree_base = wt_base
+                    if dooray_pid:
+                        config.tracker.dooray.project_id = dooray_pid
+                    config.to_yaml(board_dir / "config.yaml")
+                try:
+                    sidebar = self.query_one("#sidebar", Sidebar)
+                    proj_list = [{"name": p.name, "path": p.path} for p in self._registry.projects]
+                    sidebar.refresh_projects(proj_list, self._registry.current)
+                    sidebar.set_focused_mode(True, len(proj_list) - 1)
+                    self._sidebar_index = len(proj_list) - 1
+                except Exception:
+                    pass
+                self.notify(f"프로젝트 [cyan]{name}[/] 추가 완료.", severity="information")
+            self.app.push_screen(AddProjectDialog(), callback=on_result)
+            return
+
         from wt_board.ui.screens.create_dialog import CreateDialog
         # Pass tracker for Dooray lookup
         tracker = None
@@ -524,67 +583,3 @@ class BoardScreen(Screen):
                         self.action_open_detail()
                     return
 
-    def action_add_project(self) -> None:
-        """Add a new project to the registry."""
-        from wt_board.ui.screens.create_dialog import AddProjectDialog
-        def on_result(result) -> None:
-            if result is None:
-                return
-            name = result["name"]
-            path = result["path"]
-            wt_base = result.get("worktree_base", "worktrees")
-            dooray_pid = result.get("dooray_project_id", "")
-            self._registry.add(name, path)
-            # Init .board/ for the new project if not exists
-            board_dir = Path(path) / ".board"
-            if not board_dir.exists():
-                from wt_board.models.config import BoardConfig
-                board_dir.mkdir(parents=True)
-                (board_dir / "issues").mkdir(exist_ok=True)
-                (board_dir / "archive").mkdir(exist_ok=True)
-                (board_dir / "cache").mkdir(exist_ok=True)
-                config = BoardConfig()
-                config.project.name = name
-                config.project.worktree_base = wt_base
-                if dooray_pid:
-                    config.tracker.dooray.project_id = dooray_pid
-                config.to_yaml(board_dir / "config.yaml")
-            self._refresh_sidebar()
-            self.notify(f"프로젝트 [cyan]{name}[/] 추가 완료.", severity="information")
-        self.app.push_screen(AddProjectDialog(), callback=on_result)
-
-    def action_switch_project(self) -> None:
-        """Switch to another project."""
-        names = self._registry.names()
-        if len(names) <= 1:
-            self.notify("Only one project registered.", severity="warning")
-            return
-        from wt_board.ui.screens.create_dialog import SwitchProjectDialog
-        def on_result(result: Optional[str]) -> None:
-            if result is None:
-                return
-            entry = self._registry.switch(result)
-            if entry:
-                self.board_path = str(Path(entry.path) / ".board")
-                self._issues_by_status.clear()
-                self._tc_map.clear()
-                self._agent_map.clear()
-                self._load_data()
-                self._rebuild_board()
-                self._refresh_sidebar()
-                self.col_index = self._next_nonempty_col(-1, +1)
-                self.card_index = 0
-                self._highlight_current()
-                self.notify(f"Switched to [cyan]{result}[/].", severity="information")
-        self.app.push_screen(
-            SwitchProjectDialog(names=names, current=self._registry.current),
-            callback=on_result,
-        )
-
-    def _refresh_sidebar(self) -> None:
-        try:
-            sidebar = self.query_one("#sidebar", Sidebar)
-            proj_list = [{"name": p.name, "path": p.path} for p in self._registry.projects]
-            sidebar.refresh_projects(proj_list, self._registry.current)
-        except Exception:
-            pass
