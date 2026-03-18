@@ -1,0 +1,94 @@
+/* board.tcss — Dark Kanban board layout */
+
+/* --------------------------------------------------------------------------
+   App-wide defaults
+   -------------------------------------------------------------------------- */
+Screen {
+    background: #0d1117;
+    color: #c9d1d9;
+}
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+Header {
+    background: #010409;
+    color: #58a6ff;
+    text-style: bold;
+    height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+Footer {
+    background: #010409;
+    color: #8b949e;
+    height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Board layout
+   -------------------------------------------------------------------------- */
+#board-layout {
+    height: 1fr;
+    width: 100%;
+}
+
+/* Sidebar styles are in the Sidebar widget's DEFAULT_CSS */
+
+/* --------------------------------------------------------------------------
+   Columns area
+   -------------------------------------------------------------------------- */
+#board-columns {
+    height: 1fr;
+    width: 1fr;
+    overflow-x: auto;
+}
+
+/* KanbanColumn */
+KanbanColumn {
+    width: 1fr;
+    min-width: 22;
+    height: 100%;
+    margin: 0 1;
+    border: round #30363d;
+    overflow-y: auto;
+}
+
+KanbanColumn .col-header {
+    background: #161b22;
+    color: #79c0ff;
+    text-style: bold;
+    padding: 0 1;
+    text-align: center;
+    height: 1;
+}
+
+KanbanColumn .col-empty {
+    color: #6e7681;
+    padding: 1;
+    text-align: center;
+    height: 3;
+}
+
+/* --------------------------------------------------------------------------
+   Issue cards
+   -------------------------------------------------------------------------- */
+IssueCard {
+    height: auto;
+    padding: 0 1;
+    margin: 1 1 0 1;
+    border: tall #21262d;
+    background: #161b22;
+}
+
+IssueCard:focus {
+    border: tall #58a6ff;
+    background: #0d419f;
+}
+
+IssueCard.selected {
+    border: tall #58a6ff;
+    background: #0d419f;
+}
