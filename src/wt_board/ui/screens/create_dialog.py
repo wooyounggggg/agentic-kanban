@@ -1,4 +1,4 @@
-"""Dialogs — 이슈 생성, 프로젝트 추가/전환, 온보딩."""
+"""Dialogs — 이슈 생성, 프로젝트 추가/전환, 온보딩, 상태 이동."""
 
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, OptionList, Static
+
+from wt_board.models.config import StatusDef
 
 
 _DIALOG_CSS = """
@@ -404,4 +406,83 @@ class SwitchProjectDialog(ModalScreen):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
+            self.dismiss(None)
+
+
+# ---------------------------------------------------------------------------
+# 상태 이동 다이얼로그
+# ---------------------------------------------------------------------------
+
+class MoveDialog(ModalScreen):
+    """이슈 상태 이동 다이얼로그 — 현재 상태 표시 후 이동 가능한 상태 목록 제공."""
+
+    BINDINGS = [
+        Binding("escape", "cancel", "취소"),
+        Binding("enter", "select", "선택", show=False),
+    ]
+
+    DEFAULT_CSS = f"""
+    MoveDialog {{
+        align: center middle;
+    }}
+    MoveDialog > Vertical {{
+        {_DIALOG_CSS}
+        width: 50;
+        max-height: 22;
+    }}
+    MoveDialog .dialog-title {{
+        color: #58a6ff;
+        text-style: bold;
+        margin-bottom: 1;
+    }}
+    MoveDialog .current-status {{
+        color: #8b949e;
+        margin-bottom: 1;
+    }}
+    """
+
+    def __init__(
+        self,
+        ticket: str,
+        current_status: str,
+        target_statuses: List[StatusDef],
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._ticket = ticket
+        self._current_status = current_status
+        self._targets = target_statuses
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Static(f"이슈 이동 — #{self._ticket}", classes="dialog-title")
+            yield Static(
+                f"현재 상태: [bold]{self._current_status}[/]",
+                classes="current-status",
+            )
+            opt = OptionList()
+            for s in self._targets:
+                opt.add_option(f"{s.icon} {s.label}  [dim]({s.name})[/]")
+            yield opt
+            yield Button("취소", variant="default", id="move-btn-cancel")
+
+    def on_mount(self) -> None:
+        self.query_one(OptionList).focus()
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+    def action_select(self) -> None:
+        opt = self.query_one(OptionList)
+        idx = opt.highlighted
+        if idx is not None and 0 <= idx < len(self._targets):
+            self.dismiss(self._targets[idx].name)
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        idx = event.option_index
+        if 0 <= idx < len(self._targets):
+            self.dismiss(self._targets[idx].name)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "move-btn-cancel":
             self.dismiss(None)

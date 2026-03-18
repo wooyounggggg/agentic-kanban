@@ -261,7 +261,14 @@ class BoardScreen(Screen):
             return
         from wt_board.ui.screens.detail_screen import DetailScreen
         sync_svc = self._get_sync_service()
-        self.app.push_screen(DetailScreen(issue=issue, store=self._store, sync_service=sync_svc))
+        self.app.push_screen(
+            DetailScreen(
+                issue=issue,
+                store=self._store,
+                sync_service=sync_svc,
+                config=self._config,
+            )
+        )
 
     def _get_sync_service(self):
         """Build a SyncService if tracker is configured."""
@@ -319,23 +326,104 @@ class BoardScreen(Screen):
         if issue is None:
             self.notify("No issue selected.", severity="warning")
             return
-        self.notify(f"Agent action for #{issue.ticket} — not yet implemented.", severity="information")
+        if self._store is None:
+            self.notify("저장소가 연결되어 있지 않습니다.", severity="error")
+            return
+        try:
+            from wt_board.services.agent_service import AgentService
+            from wt_board.models.agent import AgentStatus
+            agent_svc = AgentService(self._store, self._config)
+            agent = self._store.read_agent(issue.ticket)
+            if agent.status == AgentStatus.ACTIVE:
+                agent_svc.focus_agent(issue.ticket)
+                self.notify(
+                    f"[cyan]#{issue.ticket}[/] 에이전트 포커스 전환.",
+                    severity="information",
+                )
+            else:
+                agent_svc.start_agent(issue.ticket)
+                self._agent_map[issue.ticket] = AgentStatus.ACTIVE
+                self._rebuild_board()
+                self._highlight_current()
+                self.notify(
+                    f"[cyan]#{issue.ticket}[/] 에이전트를 시작합니다.",
+                    severity="information",
+                )
+        except Exception as exc:
+            self.notify(f"에이전트 오류: {exc}", severity="error")
 
     def action_move_card(self) -> None:
         issue = self._current_issue()
         if issue is None:
             self.notify("No issue selected.", severity="warning")
             return
-        options = [(f"{s.icon} {s.label}", s.name) for s in self._statuses if s.name != issue.status]
-        if not options:
-            self.notify("No valid transitions.", severity="warning")
+
+        # Build list of valid target statuses
+        if self._config.transitions:
+            allowed_names = self._config.transitions.get(issue.status, [])
+            targets = [s for s in self._statuses if s.name in allowed_names]
+        else:
+            targets = [s for s in self._statuses if s.name != issue.status]
+
+        if not targets:
+            self.notify("이동 가능한 상태가 없습니다.", severity="warning")
             return
-        # Show inline notification listing options (full modal SelectionList is in a future iteration)
-        targets = ", ".join(f"{icon} {name}" for icon, name in options)
-        self.notify(f"Move #{issue.ticket} to: {targets}\n(Full move dialog coming soon)", severity="information")
+
+        from wt_board.ui.screens.create_dialog import MoveDialog
+
+        def on_result(new_status: Optional[str]) -> None:
+            if new_status is None:
+                return
+            if self._store is None:
+                self.notify("저장소가 연결되어 있지 않습니다.", severity="error")
+                return
+            try:
+                from wt_board.services.issue_service import IssueService
+                svc = IssueService(self._store, self._config)
+                svc.move_issue(issue.ticket, new_status)
+                self._issues_by_status.clear()
+                self._tc_map.clear()
+                self._agent_map.clear()
+                self._load_data()
+                self._rebuild_board()
+                self.col_index = self._next_nonempty_col(-1, +1)
+                self.card_index = 0
+                self._highlight_current()
+                self.notify(
+                    f"[cyan]#{issue.ticket}[/] → [bold]{new_status}[/] 이동 완료.",
+                    severity="information",
+                )
+            except Exception as exc:
+                self.notify(f"이동 실패: {exc}", severity="error")
+
+        self.app.push_screen(
+            MoveDialog(
+                ticket=issue.ticket,
+                current_status=issue.status,
+                target_statuses=targets,
+            ),
+            callback=on_result,
+        )
 
     def action_sync(self) -> None:
-        self.notify("Sync with Dooray — not yet implemented.", severity="information")
+        sync_service = self._get_sync_service()
+        if sync_service is None:
+            self.notify("Dooray 연동이 설정되지 않았습니다.", severity="warning")
+            return
+        try:
+            updated = sync_service.sync_all()
+            # Reload board data from store
+            self._issues_by_status.clear()
+            self._tc_map.clear()
+            self._agent_map.clear()
+            self._load_data()
+            self._rebuild_board()
+            self.col_index = min(self.col_index, max(0, len(self._columns()) - 1))
+            self._clamp_card()
+            self._highlight_current()
+            self.notify(f"Dooray 동기화 완료 ({len(updated)}개 이슈)", severity="information")
+        except Exception as exc:
+            self.notify(f"동기화 실패: {exc}", severity="error")
 
     def action_search(self) -> None:
         self.notify("Search — not yet implemented.", severity="information")

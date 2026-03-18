@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -10,6 +10,7 @@ from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Label, Static, Collapsible
 
+from wt_board.models.config import BoardConfig, DEFAULT_STATUSES, StatusDef
 from wt_board.models.issue import Issue
 from wt_board.models.checklist import Checklist
 from wt_board.models.worklog import WorklogEntry
@@ -50,12 +51,14 @@ class DetailScreen(Screen):
         issue: Issue,
         store=None,
         sync_service=None,
+        config: Optional[BoardConfig] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.issue = issue
         self._store = store
         self._sync_service = sync_service
+        self._config: BoardConfig = config if config is not None else BoardConfig()
         self._checklist = Checklist()
         self._worklog: list[WorklogEntry] = []
         self._plan: str = ""
@@ -194,6 +197,10 @@ class DetailScreen(Screen):
             with Vertical(id="left-panel"):
                 yield Static("[bold]Agent Terminal[/]", id="agent-panel-header")
                 yield self._agent_area()
+                yield Static(
+                    "[[bold]f[/]] Dooray 조회  [[bold]a[/]] 에이전트  [[bold]m[/]] 상태변경",
+                    id="left-panel-shortcuts",
+                )
 
             # Right panel: details
             with VerticalScroll(id="right-panel"):
@@ -302,10 +309,85 @@ class DetailScreen(Screen):
             self.notify(f"Fetch failed: {exc}", severity="error")
 
     def action_start_agent(self) -> None:
-        self.notify(f"Starting agent for #{self.issue.ticket} — not yet implemented.", severity="information")
+        if self._store is None:
+            self.notify("저장소가 연결되어 있지 않습니다.", severity="error")
+            return
+        try:
+            from wt_board.services.agent_service import AgentService
+            agent_svc = AgentService(self._store, self._config)
+            if self._agent.status == AgentStatus.ACTIVE:
+                agent_svc.focus_agent(self.issue.ticket)
+                self.notify(
+                    f"[cyan]#{self.issue.ticket}[/] 에이전트 포커스 전환.",
+                    severity="information",
+                )
+            else:
+                self._agent = agent_svc.start_agent(self.issue.ticket)
+                # Refresh the agent status widget
+                try:
+                    self.query_one("#agent-status", Static).update(
+                        f"[green]Agent active[/] (pid {self._agent.pid})\n"
+                        "[dim]Attach to tmux pane to see output.[/]"
+                    )
+                except Exception:
+                    pass
+                self.notify(
+                    f"[cyan]#{self.issue.ticket}[/] 에이전트를 시작합니다.",
+                    severity="information",
+                )
+        except Exception as exc:
+            self.notify(f"에이전트 오류: {exc}", severity="error")
 
     def action_move_status(self) -> None:
-        self.notify("Move status — not yet implemented.", severity="information")
+        statuses: List[StatusDef] = self._config.statuses or list(DEFAULT_STATUSES)
+
+        if self._config.transitions:
+            allowed_names = self._config.transitions.get(self.issue.status, [])
+            targets = [s for s in statuses if s.name in allowed_names]
+        else:
+            targets = [s for s in statuses if s.name != self.issue.status]
+
+        if not targets:
+            self.notify("이동 가능한 상태가 없습니다.", severity="warning")
+            return
+
+        from wt_board.ui.screens.create_dialog import MoveDialog
+
+        def on_result(new_status: Optional[str]) -> None:
+            if new_status is None:
+                return
+            if self._store is None:
+                self.notify("저장소가 연결되어 있지 않습니다.", severity="error")
+                return
+            try:
+                from wt_board.services.issue_service import IssueService
+                svc = IssueService(self._store, self._config)
+                self.issue = svc.move_issue(self.issue.ticket, new_status)
+                # Update the header in the detail view
+                try:
+                    status_color = _STATUS_COLOR.get(new_status, "white")
+                    self.query_one("#detail-header", Static).update(
+                        f"[bold cyan]#{self.issue.ticket}[/]  "
+                        f"{self.issue.title}  "
+                        f"[{status_color}][{new_status}][/{status_color}]"
+                    )
+                except Exception:
+                    pass
+                self.notify(
+                    f"[cyan]#{self.issue.ticket}[/] → [bold]{new_status}[/] 이동 완료.",
+                    severity="information",
+                )
+            except Exception as exc:
+                self.notify(f"이동 실패: {exc}", severity="error")
+
+        self.app.push_screen(
+            MoveDialog(
+                ticket=self.issue.ticket,
+                current_status=self.issue.status,
+                target_statuses=targets,
+            ),
+            callback=on_result,
+        )
 
     def _on_tc_toggle(self, item) -> None:
         """Called by ChecklistWidget after a toggle."""
