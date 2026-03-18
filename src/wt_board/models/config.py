@@ -36,7 +36,7 @@ class DoorayConfig:
 class TrackerConfig:
     type: str = "dooray"
     dooray: DoorayConfig = field(default_factory=DoorayConfig)
-    sync_interval: int = 300
+    sync_interval: int = 60
     auto_sync: bool = True
 
 
@@ -113,7 +113,7 @@ class BoardConfig:
                     project_id=dooray_raw.get("project_id", ""),
                     api_key=dooray_raw.get("api_key", ""),
                 ),
-                sync_interval=tr.get("sync_interval", 300),
+                sync_interval=tr.get("sync_interval", 60),
                 auto_sync=tr.get("auto_sync", True),
             )
 

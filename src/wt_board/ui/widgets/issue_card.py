@@ -70,8 +70,9 @@ class IssueCard(Static):
     # ------------------------------------------------------------------
 
     def _build_markup(self) -> str:
+        from rich.markup import escape
         ticket = self.issue.ticket
-        title = self.issue.title
+        title = escape(self.issue.title)
         if len(title) > _MAX_TITLE:
             title = title[:_MAX_TITLE - 1] + "\u2026"
 

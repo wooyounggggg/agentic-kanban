@@ -40,7 +40,7 @@ class WtBoardApp(App):
             from wt_board.models.config import BoardConfig
             config = BoardConfig.from_yaml(board_path / "config.yaml")
             if config.tracker.auto_sync:
-                interval = max(60, config.tracker.sync_interval)
+                interval = config.tracker.sync_interval or 60
                 self.set_interval(interval, self._auto_sync)
         except Exception:
             pass
@@ -55,7 +55,7 @@ class WtBoardApp(App):
             sync_service = screen._get_sync_service()
             if sync_service is None:
                 return
-            sync_service.sync_all()
+            sync_service.sync_all_light()
             # Reload board data quietly
             screen._issues_by_status.clear()
             screen._tc_map.clear()

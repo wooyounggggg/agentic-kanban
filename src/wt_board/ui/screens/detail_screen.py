@@ -185,11 +185,13 @@ class DetailScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
 
+        from rich.markup import escape
         status_color = _STATUS_COLOR.get(self.issue.status, "white")
+        safe_title = escape(self.issue.title)
         title_markup = (
             f"[bold cyan]#{self.issue.ticket}[/]  "
-            f"{self.issue.title}  "
-            f"[{status_color}][{self.issue.status}][/{status_color}]"
+            f"{safe_title}  "
+            f"[{status_color}]{self.issue.status}[/{status_color}]"
         )
 
         with Horizontal(id="detail-layout"):
@@ -198,7 +200,7 @@ class DetailScreen(Screen):
                 yield Static("[bold]Agent Terminal[/]", id="agent-panel-header")
                 yield self._agent_area()
                 yield Static(
-                    "[[bold]f[/]] Dooray 조회  [[bold]a[/]] 에이전트  [[bold]m[/]] 상태변경",
+                    "[bold cyan]f[/] Dooray 조회  [bold cyan]a[/] 에이전트  [bold cyan]m[/] 상태변경",
                     id="left-panel-shortcuts",
                 )
 

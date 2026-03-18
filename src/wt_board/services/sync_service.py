@@ -69,11 +69,32 @@ class SyncService:
         return issue
 
     def sync_all(self) -> List[Issue]:
-        """Sync all active issues and return the updated list."""
+        """Sync all active issues (full: title, status, description, assignee)."""
         updated: List[Issue] = []
         for ticket in self._store.list_issues():
             issue = self._store.read_issue(ticket)
             issue = self._apply_tracker_data(issue)
+            self._store.write_issue(ticket, issue)
+            updated.append(issue)
+        return updated
+
+    def sync_all_light(self) -> List[Issue]:
+        """Lightweight sync — title, status, assignee only. No description/comments."""
+        updated: List[Issue] = []
+        for ticket in self._store.list_issues():
+            issue = self._store.read_issue(ticket)
+            remote = self._tracker.get_issue(issue.ticket)
+            if remote is None:
+                continue
+            if remote.title:
+                issue.title = remote.title
+            local_names = self._config.status_names()
+            if remote.status in local_names:
+                issue.status = remote.status
+            if remote.assignee:
+                issue.assignee = remote.assignee
+            issue.tracker.remote_status = remote.status
+            issue.touch_updated()
             self._store.write_issue(ticket, issue)
             updated.append(issue)
         return updated
