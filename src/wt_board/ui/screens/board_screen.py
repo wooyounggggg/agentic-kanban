@@ -223,7 +223,12 @@ class BoardScreen(Screen):
         cols = self._columns()
         if not cols:
             return
-        self.col_index = self._next_nonempty_col(self.col_index, -1)
+        new_idx = self._next_nonempty_col(self.col_index, -1)
+        if new_idx == self.col_index:
+            # 이미 맨 왼쪽 → 프로젝트 전환
+            self.action_switch_project()
+            return
+        self.col_index = new_idx
         self.card_index = 0
         self._highlight_current()
 
