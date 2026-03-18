@@ -72,23 +72,27 @@ class Sidebar(Vertical):
     def compose(self) -> ComposeResult:
         yield Static("[bold cyan]wt-board[/]", classes="sb-title")
         yield Static("Projects", classes="sb-section")
+        yield Vertical(id="sb-project-list")
+        yield Static("[dim]P add  S switch[/]", classes="sb-hint")
 
+    def on_mount(self) -> None:
+        self._render_projects()
+
+    def _render_projects(self) -> None:
+        container = self.query_one("#sb-project-list", Vertical)
+        container.remove_children()
         if not self.projects:
-            yield Static(" [dim](none)[/]", classes="sb-item")
+            container.mount(Static(" [dim](none)[/]", classes="sb-item"))
         else:
             for proj in self.projects:
                 name = proj.get("name", "")
                 if name == self.current_project:
-                    yield Static(f" [green]▶[/] {name}", classes="sb-item-active", id=f"proj-{name}")
+                    container.mount(Static(f" [green]▶[/] {name}", classes="sb-item-active"))
                 else:
-                    yield Static(f"   {name}", classes="sb-item", id=f"proj-{name}")
-
-        yield Static("[dim]P add  S switch[/]", classes="sb-hint")
+                    container.mount(Static(f"   {name}", classes="sb-item"))
 
     def refresh_projects(self, projects: List[dict], current: str) -> None:
         """Rebuild the project list."""
         self.projects = projects
         self.current_project = current
-        self.remove_children()
-        for widget in self.compose():
-            self.mount(widget)
+        self._render_projects()

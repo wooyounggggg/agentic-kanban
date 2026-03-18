@@ -150,7 +150,6 @@ class BoardScreen(Screen):
                 tc_map=self._tc_map,
                 agent_map=self._agent_map,
                 selected_index=0 if (col_idx == self.col_index and issues) else -1,
-                id=f"col-{status_def.name}",
             )
             board.mount(col)
 
@@ -261,7 +260,20 @@ class BoardScreen(Screen):
             self.notify("No issue selected.", severity="warning")
             return
         from wt_board.ui.screens.detail_screen import DetailScreen
-        self.app.push_screen(DetailScreen(issue=issue, store=self._store))
+        sync_svc = self._get_sync_service()
+        self.app.push_screen(DetailScreen(issue=issue, store=self._store, sync_service=sync_svc))
+
+    def _get_sync_service(self):
+        """Build a SyncService if tracker is configured."""
+        try:
+            if not self._store or not self._config.tracker.dooray.api_key:
+                return None
+            from wt_board.trackers.dooray import DoorayTracker
+            from wt_board.services.sync_service import SyncService
+            tracker = DoorayTracker(self._config.tracker.dooray)
+            return SyncService(self._store, tracker, self._config)
+        except Exception:
+            return None
 
     def action_new_issue(self) -> None:
         from wt_board.ui.screens.create_dialog import CreateDialog

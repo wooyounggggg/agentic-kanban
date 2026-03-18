@@ -87,7 +87,6 @@ class KanbanColumn(Vertical):
                     issue,
                     tc_progress=tc,
                     agent_status=agent_st,
-                    id=f"card-{issue.ticket}",
                 )
                 card.selected = idx == self.focused_index
                 yield card

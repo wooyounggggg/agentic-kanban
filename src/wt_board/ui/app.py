@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -15,17 +16,27 @@ class WtBoardApp(App):
     TITLE = "wt-board"
 
     BINDINGS = [
-        ("q", "quit", "Quit"),
+        ("q", "request_quit", "Quit"),
         ("?", "help", "Help"),
     ]
 
     def __init__(self, board_path: Optional[str] = None) -> None:
         super().__init__()
         self.board_path = board_path
+        self._last_quit_press = 0.0
 
     def on_mount(self) -> None:
         self.push_screen(BoardScreen(board_path=self.board_path))
         self._check_onboarding()
+
+    def action_request_quit(self) -> None:
+        """q 한 번 → 안내, 빠르게 두 번 → 종료."""
+        now = time.monotonic()
+        if now - self._last_quit_press < 1.5:
+            self.exit()
+        else:
+            self._last_quit_press = now
+            self.notify("한 번 더 [bold]q[/]를 누르면 종료합니다.", severity="warning")
 
     def _check_onboarding(self) -> None:
         """최초 실행 시 Dooray API key가 없으면 온보딩 다이얼로그."""
