@@ -619,10 +619,9 @@ class BoardScreen(Screen):
             except Exception:
                 pass
 
-            self.notify(
-                f"테마 '{name}' 적용됨. 앱을 재시작하면 반영됩니다.",
-                severity="information",
-            )
+            # 즉시 적용
+            self.app.refresh_css()
+            self.notify(f"테마: {name}", severity="information")
 
         from wt_board.ui.screens.create_dialog import ThemeDialog
         self.app.push_screen(ThemeDialog(current_theme=current_theme), callback=on_result)
