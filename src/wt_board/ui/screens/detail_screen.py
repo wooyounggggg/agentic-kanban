@@ -305,36 +305,20 @@ class DetailScreen(Screen):
             self.notify("Dooray 연동이 설정되지 않았습니다.", severity="warning")
             return
         ticket = self.issue.ticket
-        self.notify("Dooray 조회 중...", severity="information")
-        # 비동기 대신 스레드로 병렬 호출
-        import concurrent.futures
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-                issue_future = pool.submit(self._sync_service.sync_issue, ticket)
-                comments_future = pool.submit(self._sync_service.sync_comments, ticket)
-                issue = issue_future.result(timeout=30)
-                comments = comments_future.result(timeout=30)
-
+            # 순차 호출 (Textual 메인 스레드에서 위젯 업데이트 보장)
+            issue = self._sync_service.sync_issue(ticket)
             self.issue = issue
             self._update_pipeline_header()
 
-            # 본문은 description 뷰어에 표시
             if issue.description:
                 self._description = issue.description
-                try:
-                    self._description_viewer.update_content(issue.description)
-                    self._description_viewer.display = True
-                except AttributeError:
-                    pass
+                self._description_viewer.update_content(issue.description)
 
-            # 댓글은 comments 뷰어에 별도 표시
+            comments = self._sync_service.sync_comments(ticket)
             if comments:
                 self._comments = comments
-                try:
-                    self._comments_viewer.update_content(comments)
-                    self._comments_viewer.display = True
-                except AttributeError:
-                    pass
+                self._comments_viewer.update_content(comments)
 
             self.notify("Dooray 조회 완료", severity="information")
         except Exception as exc:

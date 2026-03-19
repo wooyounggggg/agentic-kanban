@@ -13,7 +13,7 @@ Screen {
    -------------------------------------------------------------------------- */
 Header {
     background: #11111b;
-    color: #89b4fa;
+    color: #7893b8;
     text-style: bold;
     height: 1;
 }
@@ -58,7 +58,7 @@ KanbanColumn {
 
 KanbanColumn .col-header {
     background: #313244;
-    color: #89b4fa;
+    color: #7893b8;
     text-style: bold;
     padding: 0 1;
     text-align: center;
@@ -84,11 +84,11 @@ IssueCard {
 }
 
 IssueCard:focus {
-    border: tall #89b4fa;
+    border: tall #7893b8;
     background: #45475a;
 }
 
 IssueCard.selected {
-    border: tall #89b4fa;
+    border: tall #7893b8;
     background: #45475a;
 }

@@ -22,10 +22,10 @@ class Sidebar(Vertical):
         padding: 1;
     }
     Sidebar.focused-mode {
-        border-right: solid #89b4fa;
+        border-right: solid #7893b8;
     }
     Sidebar .sb-title {
-        color: #89b4fa;
+        color: #7893b8;
         text-style: bold;
         padding: 0 0 1 0;
     }
@@ -36,7 +36,7 @@ class Sidebar(Vertical):
         margin-top: 1;
     }
     Sidebar .sb-section-active {
-        color: #89b4fa;
+        color: #7893b8;
         text-style: bold;
         height: 1;
         margin-top: 1;
@@ -53,7 +53,7 @@ class Sidebar(Vertical):
         height: 1;
     }
     Sidebar .sb-item-hover {
-        color: #89b4fa;
+        color: #7893b8;
         text-style: bold;
         padding-left: 1;
         height: 1;
