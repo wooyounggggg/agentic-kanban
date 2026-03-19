@@ -104,7 +104,7 @@ class DetailScreen(Screen):
 
         # TC Checklist
         panel.mount(Static(
-            f"[bold]TC Checklist[/] [dim]{self._checklist.progress_str}[/]",
+            f"[bold]TC[/] [dim]{self._checklist.progress_str}[/]",
             id="cl-section-header",
         ))
         self._checklist_widget = ChecklistWidget(
@@ -115,30 +115,31 @@ class DetailScreen(Screen):
         panel.mount(self._checklist_widget)
 
         # Plan (hidden by default)
-        panel.mount(Static("[bold]Plan[/] [dim](p)[/]", id="plan-section-header"))
-        self._plan_viewer = PlanViewer(self._plan, id="plan-viewer")
+        panel.mount(Static("[bold]Plan[/]", id="plan-section-header"))
+        plan_content = self._plan if self._plan else "m키로 Plan 단계를 실행하세요"
+        self._plan_viewer = PlanViewer(plan_content, id="plan-viewer")
         self._plan_viewer.display = False
         panel.mount(self._plan_viewer)
 
         # Worklog (hidden)
-        panel.mount(Static("[bold]Worklog[/] [dim](l)[/]", id="worklog-section-header"))
+        panel.mount(Static("[bold]Worklog[/]", id="worklog-section-header"))
         self._worklog_widget = WorklogWidget(self._worklog, id="worklog-widget")
         self._worklog_widget.display = False
         panel.mount(self._worklog_widget)
 
-        # Description (hidden)
-        panel.mount(Static("[bold]Description[/] [dim](d)[/]", id="desc-section-header"))
+        # Ticket (hidden)
+        panel.mount(Static("[bold]Ticket[/]", id="desc-section-header"))
         self._description_viewer = PlanViewer(
-            self._description or "[dim]f키로 Dooray에서 조회[/]",
+            self._description or "f키로 Dooray에서 조회",
             id="description-viewer",
         )
         self._description_viewer.display = False
         panel.mount(self._description_viewer)
 
         # Comments (hidden)
-        panel.mount(Static("[bold]Comments[/] [dim](c)[/]", id="comments-section-header"))
+        panel.mount(Static("[bold]Comments[/]", id="comments-section-header"))
         self._comments_viewer = PlanViewer(
-            self._comments or "[dim]f키로 Dooray에서 조회[/]",
+            self._comments or "f키로 Dooray에서 조회",
             id="comments-viewer",
         )
         self._comments_viewer.display = False
@@ -270,7 +271,7 @@ class DetailScreen(Screen):
             if self._store:
                 self._store.write_checklist(self.issue.ticket, self._checklist)
             self.query_one("#cl-section-header", Static).update(
-                f"[bold]TC Checklist[/] [dim]{self._checklist.progress_str}[/]"
+                f"[bold]TC[/] [dim]{self._checklist.progress_str}[/]"
             )
         except AttributeError:
             pass

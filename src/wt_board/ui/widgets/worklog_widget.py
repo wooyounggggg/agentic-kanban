@@ -12,20 +12,34 @@ from wt_board.models.worklog import WorklogEntry
 
 
 _AUTHOR_BADGE = {
-    "agent": "[cyan bold]agent[/]",
-    "human": "[green bold]human[/]",
+    "agent": "agent",
+    "human": "human",
 }
+
+_AUTHOR_COLOR = {
+    "agent": "cyan",
+    "human": "green",
+}
+
+_BOX_WIDTH = 60
 
 
 def _format_entry(entry: WorklogEntry, index: int) -> str:
-    author = _AUTHOR_BADGE.get(entry.author, f"[dim]{entry.author}[/]")
-    at = entry.at[:16] if entry.at else ""  # Trim to "YYYY-MM-DDTHH:MM"
-    header = f"[dim]{at}[/] {author}"
-    body = entry.work_done or "[dim](no description)[/]"
-    next_act = ""
+    author = _AUTHOR_BADGE.get(entry.author, entry.author)
+    color = _AUTHOR_COLOR.get(entry.author, "white")
+    at = entry.at[:16] if entry.at else ""
+    # Format date portion: YYYY-MM-DDTHH:MM → YYYY-MM-DD HH:MM
+    at_display = at.replace("T", " ")
+
+    header_line = f"[dim]┌[/] [{color}]{at_display}[/] [dim]({author})[/]"
+    body = entry.work_done or "(no description)"
+    body_line = f"[dim]│[/] {body}"
+
+    lines = [header_line, body_line]
     if entry.next_action:
-        next_act = f"\n  [dim]next:[/] {entry.next_action}"
-    return f"{header}\n  {body}{next_act}"
+        lines.append(f"[dim]│[/] [dim]→ 다음:[/] {entry.next_action}")
+    lines.append(f"[dim]└{'─' * (_BOX_WIDTH - 1)}[/]")
+    return "\n".join(lines)
 
 
 class WorklogWidget(VerticalScroll):
@@ -46,9 +60,7 @@ class WorklogWidget(VerticalScroll):
     }
 
     WorklogWidget .wl-entry {
-        border-bottom: dashed $surface-lighten-1;
         padding: 0 0 1 0;
-        margin-bottom: 1;
         height: auto;
     }
 

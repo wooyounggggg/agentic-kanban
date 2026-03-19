@@ -178,11 +178,18 @@ class DoorayTracker(TrackerPlugin):
             if not isinstance(comment, dict):
                 continue
 
-            # Only include comment-type log entries
-            if comment.get("type") != "comment":
+            # Dooray API uses "postLogType" field; fall back to "type" for
+            # compatibility with any future CLI changes.
+            log_type = (
+                comment.get("postLogType")
+                or comment.get("type")
+                or ""
+            ).lower()
+            # Only include actual comments (not status-change / assignment logs)
+            if log_type and log_type != "comment":
                 continue
 
-            # Author — stored under creator.member (no name field available)
+            # Author — stored under creator.member
             creator = comment.get("creator") or {}
             author: str = ""
             if isinstance(creator, dict):
