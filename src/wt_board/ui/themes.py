@@ -77,7 +77,7 @@ def _styles_dir() -> Path:
     return Path(__file__).parent / "styles"
 
 
-def apply_theme(name: str, board_tcss: Path = None, detail_tcss: Path = None) -> None:
+def apply_theme(name: str, board_tcss=None, detail_tcss=None) -> None:
     """Rewrite TCSS files from templates using the given theme's colors.
 
     Parameters
@@ -92,10 +92,8 @@ def apply_theme(name: str, board_tcss: Path = None, detail_tcss: Path = None) ->
     colors = get_theme(name)
     styles = _styles_dir()
 
-    if board_tcss is None:
-        board_tcss = styles / "board.tcss"
-    if detail_tcss is None:
-        detail_tcss = styles / "detail.tcss"
+    board_tcss = Path(board_tcss) if board_tcss else styles / "board.tcss"
+    detail_tcss = Path(detail_tcss) if detail_tcss else styles / "detail.tcss"
 
     board_tmpl = styles / "board.tcss.tmpl"
     detail_tmpl = styles / "detail.tcss.tmpl"

@@ -1,4 +1,4 @@
-/* detail.tcss — warm brown/earth-tone theme */
+/* detail.tcss — generated from theme template */
 
 #detail-panel {
     height: 1fr;

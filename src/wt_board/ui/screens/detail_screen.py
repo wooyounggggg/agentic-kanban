@@ -129,8 +129,9 @@ class DetailScreen(Screen):
 
         # Ticket (open by default)
         panel.mount(Static("[bold]Ticket[/] (t)", id="desc-section-header"))
+        ticket_empty = "Dooray 티켓 본문이 없습니다. f키로 조회할 수 있습니다."
         self._description_viewer = PlanViewer(
-            self._description or "f키로 Dooray에서 조회",
+            self._description or ticket_empty,
             id="description-viewer",
         )
         self._description_viewer.display = True
@@ -138,8 +139,9 @@ class DetailScreen(Screen):
 
         # Comments (open by default)
         panel.mount(Static("[bold]Comments[/] (c)", id="comments-section-header"))
+        comments_empty = "댓글이 없습니다. f키로 Dooray에서 조회할 수 있습니다."
         self._comments_viewer = PlanViewer(
-            self._comments or "f키로 Dooray에서 조회",
+            self._comments or comments_empty,
             id="comments-viewer",
         )
         self._comments_viewer.display = True
