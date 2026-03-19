@@ -146,7 +146,7 @@ class DetailScreen(Screen):
     # ------------------------------------------------------------------
 
     def _open_agent_split(self) -> None:
-        """tmux split-pane으로 왼쪽에 claude 실행."""
+        """tmux 3-pane: 왼쪽=claude, 오른쪽=TUI, 하단=단축키 안내."""
         if not os.environ.get("TMUX"):
             return
         if self._store is None:
@@ -167,30 +167,43 @@ class DetailScreen(Screen):
             if not wt_path or not os.path.isdir(wt_path):
                 wt_path = str(self._store.root.parent)
 
-            # claude 실행 명령어 구성
+            # 1. 하단 status pane (2줄) — 단축키 안내
+            status_text = (
+                f"  #{ticket} {issue.title}  |  "
+                "Esc 뒤로  Space TC  p Plan  l Log  d Desc  c Comments  f Fetch  m Move"
+            )
+            safe_status = status_text.replace("'", "'\"'\"'")
+            # 하단에 작은 pane, while true로 유지 (sleep으로 프로세스 살림)
+            status_cmd = f"printf '\\033[1;36m%s\\033[0m' '{safe_status}'; sleep 86400"
+            subprocess.run(
+                ["tmux", "split-window", "-v", "-l", "1", "sh", "-c", status_cmd],
+                capture_output=True, text=True,
+            )
+            # 포커스를 위쪽 pane(TUI)으로 되돌림
+            subprocess.run(["tmux", "select-pane", "-U"], capture_output=True, text=True)
+
+            # 2. 왼쪽 claude pane (50%)
             binary = self._config.agent.binary
             plan = self._store.read_plan(ticket)
-            plan_note = f" Implementation plan: .board/issues/{ticket}/plan.md." if plan else ""
+            plan_note = f" Plan: .board/issues/{ticket}/plan.md." if plan else ""
             prompt = (
                 f"#{ticket}: {issue.title}.{plan_note} "
                 f"After work, append to .board/issues/{ticket}/worklog.jsonl"
             )
-            # shell 명령어 문자열로 구성 (single quote로 감싸기)
             safe_prompt = prompt.replace("'", "'\"'\"'")
             shell_cmd = f"cd '{wt_path}' && {binary} '{safe_prompt}'"
 
-            # tmux split: 왼쪽으로, 50%, shell로 실행
             result = subprocess.run(
                 ["tmux", "split-window", "-hb", "-l", "50%", "sh", "-c", shell_cmd],
                 capture_output=True, text=True,
             )
 
             if result.returncode == 0:
-                # agent.yaml 갱신
                 from wt_board.models.agent import AgentSession, AgentStatus
                 agent = AgentSession(status=AgentStatus.ACTIVE, tmux_pane="split")
                 self._store.write_agent(ticket, agent)
                 self._agent = agent
+                # 포커스: claude(왼쪽)에 유지 — split-window가 자동으로 포커스함
 
         except Exception:
             pass
@@ -213,8 +226,7 @@ class DetailScreen(Screen):
 
         with VerticalScroll(id="detail-panel"):
             yield Static(title_markup, id="detail-header")
-
-        yield Footer()
+        # Footer 제거 — tmux 하단 pane이 단축키 안내 담당
 
     # ------------------------------------------------------------------
     # Actions
