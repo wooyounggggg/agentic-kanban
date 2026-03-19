@@ -42,8 +42,8 @@ class BoardScreen(Screen):
 
     BINDINGS = [
         Binding("n", "new_issue", "New"),
-        Binding("enter", "open_detail", "Open"),
-        Binding("a", "start_agent", "Agent"),
+        Binding("enter", "open_agent", "Agent"),
+        Binding("i", "open_detail", "Info"),
         Binding("m", "move_card", "Move"),
         Binding("s", "sync", "Sync"),
         Binding("x", "delete_item", "Delete"),
@@ -327,9 +327,33 @@ class BoardScreen(Screen):
             else:
                 col.set_focused_card(-1)
 
-    def action_open_detail(self) -> None:
+    def action_open_agent(self) -> None:
+        """Enter → 에이전트 시작/resume 후 tmux 윈도우로 전환."""
         if self._sidebar_focused:
-            # 사이드바에서 Enter → 보드로 복귀
+            self._exit_sidebar()
+            return
+        issue = self._current_issue()
+        if issue is None:
+            self.notify("이슈를 선택해주세요.", severity="warning")
+            return
+        if self._store is None:
+            return
+        try:
+            from wt_board.services.agent_service import AgentService
+            from wt_board.models.agent import AgentStatus
+            agent_svc = AgentService(self._store, self._config)
+            agent = agent_svc.resume_agent(issue.ticket)
+            self._agent_map[issue.ticket] = AgentStatus.ACTIVE
+            self._rebuild_board()
+            self._highlight_current()
+            # tmux 포커스를 에이전트 윈도우로 전환
+            agent_svc.focus_agent(issue.ticket)
+        except Exception as exc:
+            self.notify(f"에이전트 오류: {exc}", severity="error")
+
+    def action_open_detail(self) -> None:
+        """i → 이슈 상세 정보 화면."""
+        if self._sidebar_focused:
             self._exit_sidebar()
             return
         issue = self._current_issue()
@@ -350,11 +374,12 @@ class BoardScreen(Screen):
     def _get_sync_service(self):
         """Build a SyncService if tracker is configured."""
         try:
-            if not self._store or not self._config.tracker.dooray.api_key:
+            if not self._store or self._config.tracker.type == "none":
                 return None
             from wt_board.trackers.dooray import DoorayTracker
             from wt_board.services.sync_service import SyncService
-            tracker = DoorayTracker(self._config.tracker.dooray)
+            dc = self._config.tracker.dooray
+            tracker = DoorayTracker(dc.cli_path, dc.api_key)
             return SyncService(self._store, tracker, self._config)
         except Exception:
             return None
@@ -424,7 +449,8 @@ class BoardScreen(Screen):
         try:
             if self._store and self._config.tracker.type == "dooray":
                 from wt_board.trackers.dooray import DoorayTracker
-                tracker = DoorayTracker(self._config.tracker.dooray)
+                dc = self._config.tracker.dooray
+                tracker = DoorayTracker(dc.cli_path, dc.api_key)
         except Exception:
             pass
 
@@ -559,7 +585,7 @@ class BoardScreen(Screen):
     # ------------------------------------------------------------------
 
     def on_issue_card_clicked(self, event: IssueCard.Clicked) -> None:
-        """Handle mouse click on a card. Click to select, click again to open detail."""
+        """Click: select. Double-click (same card): open agent."""
         card = event.card
         cols = self._columns()
         for col_idx, col in enumerate(cols):
@@ -571,6 +597,6 @@ class BoardScreen(Screen):
                     self.card_index = card_idx
                     self._highlight_current()
                     if already_selected:
-                        self.action_open_detail()
+                        self.action_open_agent()
                     return
 

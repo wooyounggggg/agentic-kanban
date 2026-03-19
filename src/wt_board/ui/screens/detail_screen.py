@@ -313,16 +313,14 @@ class DetailScreen(Screen):
             self.notify(f"Fetch failed: {exc}", severity="error")
 
     def _auto_start_agent(self) -> None:
-        """상세 화면 진입 시 에이전트 자동 시작/resume."""
+        """상세 화면 진입 시 에이전트 상태 확인 (자동 시작하지는 않음, Enter가 담당)."""
         if self._store is None:
             return
         try:
-            from wt_board.services.agent_service import AgentService
-            agent_svc = AgentService(self._store, self._config)
-            self._agent = agent_svc.resume_agent(self.issue.ticket)
+            self._agent = self._store.read_agent(self.issue.ticket)
             self._update_agent_status_widget()
         except Exception:
-            pass  # tmux 미설치 등 — 조용히 실패
+            pass
 
     def _update_agent_status_widget(self) -> None:
         """에이전트 상태 위젯 갱신."""
