@@ -116,8 +116,12 @@ class DoorayTracker(TrackerPlugin):
     # ------------------------------------------------------------------
 
     def get_issue(self, ticket_id: str) -> Optional[TrackerIssue]:
-        """Return the :class:`TrackerIssue` for *ticket_id*, or ``None``."""
-        data = self._run(["get-post", "--post", ticket_id])
+        """Return the :class:`TrackerIssue` for *ticket_id*, or ``None``.
+
+        Uses ``get-post-detail`` instead of ``get-post`` so that the response
+        includes the ``body`` field (description content).
+        """
+        data = self._run(["get-post-detail", "--post", ticket_id])
         if data is None:
             return None
         # Some CLI versions wrap the payload in a "result" key
@@ -144,8 +148,9 @@ class DoorayTracker(TrackerPlugin):
     def get_comments(self, ticket_id: str) -> Optional[str]:
         """Fetch comments for *ticket_id* and return formatted markdown.
 
-        Calls ``node {cli_path} get-post-detail --post {ticket_id}`` and
-        formats each comment as::
+        Calls ``node {cli_path} get-post-logs --post {ticket_id}``.  The CLI
+        returns a JSON list of log/comment entries directly (not wrapped in a
+        ``result`` key).  Each entry with ``type == "comment"`` is rendered as::
 
             ### {author} ({date})
             {content}
@@ -153,15 +158,18 @@ class DoorayTracker(TrackerPlugin):
 
         Returns ``None`` if the call fails or there are no comments.
         """
-        data = self._run(["get-post-detail", "--post", ticket_id])
+        data = self._run(["get-post-logs", "--post", ticket_id])
         if data is None:
             return None
 
-        payload = data.get("result") or data if isinstance(data, dict) else None
-        if not payload:
+        # get-post-logs returns a plain list
+        if isinstance(data, dict):
+            comments_raw = data.get("result") or []
+        elif isinstance(data, list):
+            comments_raw = data
+        else:
             return None
 
-        comments_raw = payload.get("comments") or []
         if not isinstance(comments_raw, list) or not comments_raw:
             return None
 
@@ -170,15 +178,25 @@ class DoorayTracker(TrackerPlugin):
             if not isinstance(comment, dict):
                 continue
 
-            # Author name
-            created_by = comment.get("createdBy") or {}
+            # Only include comment-type log entries
+            if comment.get("type") != "comment":
+                continue
+
+            # Author — stored under creator.member (no name field available)
+            creator = comment.get("creator") or {}
             author: str = ""
-            if isinstance(created_by, dict):
-                author = created_by.get("name") or ""
+            if isinstance(creator, dict):
+                member = creator.get("member") or {}
+                if isinstance(member, dict):
+                    author = (
+                        member.get("name")
+                        or member.get("organizationMemberId")
+                        or ""
+                    )
             author = author or "Unknown"
 
             # Date
-            date: str = comment.get("createdAt") or comment.get("createdOn") or ""
+            date: str = comment.get("createdAt") or ""
 
             # Content
             body = comment.get("body") or {}
@@ -189,7 +207,8 @@ class DoorayTracker(TrackerPlugin):
                 content = body
             content = content.strip()
 
-            parts.append(f"### {author} ({date})\n{content}\n---")
+            if content:
+                parts.append(f"### {author} ({date})\n{content}\n---")
 
         if not parts:
             return None

@@ -51,6 +51,8 @@ class IssueCard(Static):
         tc_progress: str = "",
         agent_status: str = AgentStatus.IDLE,
         status_label: str = "",
+        pipeline_step: str = "",
+        agent_alive: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -58,6 +60,8 @@ class IssueCard(Static):
         self.tc_progress = tc_progress
         self._agent_status = agent_status
         self._status_label = status_label
+        self._pipeline_step = pipeline_step
+        self._agent_alive = agent_alive
 
     def _build_markup(self) -> str:
         from rich.markup import escape
@@ -66,12 +70,15 @@ class IssueCard(Static):
         if len(title) > _MAX_TITLE:
             title = title[:_MAX_TITLE - 1] + "\u2026"
 
-        # Line 1: ticket + title + agent badge
-        badge = _AGENT_BADGE.get(self._agent_status, "")
-        line1 = f"[bold cyan]#{ticket}[/] {title}{badge}"
+        # Line 1: ticket + title + agent alive indicator
+        alive_badge = " [bold green]●[/]" if self._agent_alive else ""
+        line1 = f"[bold cyan]#{ticket}[/] {title}{alive_badge}"
 
-        # Line 2: status chip + assignee + TC + tags
+        # Line 2: pipeline step chip + status chip + assignee + TC + tags
         parts = []
+        if self._pipeline_step:
+            step_label = self._pipeline_step.capitalize()
+            parts.append(f"[on #30363d cyan] {step_label} [/]")
         if self._status_label:
             parts.append(f"[on #30363d] {self._status_label} [/]")
         if self.issue.assignee:

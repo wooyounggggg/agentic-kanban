@@ -37,6 +37,7 @@ class Issue:
     labels: List[str] = field(default_factory=list)
     description: str = ""
     assignee: str = ""
+    pipeline_step: str = "plan"
 
     @classmethod
     def from_yaml(cls, path: Path) -> "Issue":
@@ -59,6 +60,7 @@ class Issue:
             labels=data.get("labels", []),
             description=data.get("description", ""),
             assignee=data.get("assignee", ""),
+            pipeline_step=data.get("pipeline_step", "plan"),
         )
 
     def to_yaml(self, path: Path) -> None:
@@ -75,6 +77,7 @@ class Issue:
             "labels": self.labels,
             "description": self.description,
             "assignee": self.assignee,
+            "pipeline_step": self.pipeline_step,
         }
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:

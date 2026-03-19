@@ -83,11 +83,16 @@ class KanbanColumn(Vertical):
             for idx, issue in enumerate(self.issues):
                 tc = self.tc_map.get(issue.ticket, "")
                 agent_st = self.agent_map.get(issue.ticket, "idle")
+                pipeline_step = getattr(issue, "pipeline_step", "")
+                from wt_board.models.agent import AgentStatus
+                agent_alive = agent_st == AgentStatus.ACTIVE
                 card = IssueCard(
                     issue,
                     tc_progress=tc,
                     agent_status=agent_st,
                     status_label=self.status_def.label,
+                    pipeline_step=pipeline_step,
+                    agent_alive=agent_alive,
                 )
                 card.selected = idx == self.focused_index
                 yield card

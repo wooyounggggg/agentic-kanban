@@ -9,6 +9,53 @@ from typing import Dict, List, Optional
 
 
 @dataclass
+class PipelineStep:
+    name: str = ""        # plan, tc, implement, review
+    label: str = ""       # Plan, TC, Implement, Review
+    command: str = ""     # command to send to agent
+    artifact: str = ""    # file to check (e.g. "plan.md", "checklist.yaml")
+    gate: str = ""        # gate condition
+
+
+DEFAULT_PIPELINE: List[PipelineStep] = [
+    PipelineStep(
+        name="plan",
+        label="Plan",
+        command=(
+            "Read the Dooray ticket #{ticket}: {title}. "
+            "Analyze requirements and write a detailed implementation plan to "
+            ".board/issues/{ticket}/plan.md"
+        ),
+        artifact="plan.md",
+    ),
+    PipelineStep(
+        name="tc",
+        label="TC",
+        command=(
+            "Based on .board/issues/{ticket}/plan.md, "
+            "write test cases to .board/issues/{ticket}/checklist.yaml"
+        ),
+        artifact="checklist.yaml",
+    ),
+    PipelineStep(
+        name="implement",
+        label="Implement",
+        command=(
+            "Implement the code based on .board/issues/{ticket}/plan.md "
+            "and test cases in .board/issues/{ticket}/checklist.yaml"
+        ),
+        artifact="",
+    ),
+    PipelineStep(
+        name="review",
+        label="Review",
+        command="Review the changes, run tests, and prepare for PR",
+        artifact="",
+    ),
+]
+
+
+@dataclass
 class StatusDef:
     name: str = ""
     label: str = ""
@@ -66,6 +113,7 @@ class BoardConfig:
     transitions: Dict[str, List[str]] = field(default_factory=dict)
     tracker: TrackerConfig = field(default_factory=TrackerConfig)
     agent: AgentConfig = field(default_factory=AgentConfig)
+    pipeline: List[PipelineStep] = field(default_factory=lambda: list(DEFAULT_PIPELINE))
 
     @classmethod
     def from_yaml(cls, path: Path) -> "BoardConfig":
@@ -126,6 +174,20 @@ class BoardConfig:
                 prompt_template=ag.get("prompt_template", config.agent.prompt_template),
             )
 
+        # Pipeline
+        raw_pipeline = data.get("pipeline")
+        if raw_pipeline:
+            config.pipeline = [
+                PipelineStep(
+                    name=p.get("name", ""),
+                    label=p.get("label", ""),
+                    command=p.get("command", ""),
+                    artifact=p.get("artifact", ""),
+                    gate=p.get("gate", ""),
+                )
+                for p in raw_pipeline
+            ]
+
         return config
 
     def to_yaml(self, path: Path) -> None:
@@ -164,6 +226,16 @@ class BoardConfig:
             "max_concurrent": self.agent.max_concurrent,
             "prompt_template": self.agent.prompt_template,
         }
+        data["pipeline"] = [
+            {
+                "name": p.name,
+                "label": p.label,
+                "command": p.command,
+                "artifact": p.artifact,
+                **({"gate": p.gate} if p.gate else {}),
+            }
+            for p in self.pipeline
+        ]
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)

@@ -5,6 +5,7 @@ from wt_board.services.worktree_service import WorktreeService
 from wt_board.services.agent_service import AgentService
 from wt_board.services.checklist_service import ChecklistService
 from wt_board.services.sync_service import SyncService
+from wt_board.services.pipeline_service import PipelineService
 
 __all__ = [
     "IssueService",
@@ -12,4 +13,5 @@ __all__ = [
     "AgentService",
     "ChecklistService",
     "SyncService",
+    "PipelineService",
 ]

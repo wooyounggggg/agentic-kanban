@@ -131,7 +131,7 @@ class AgentService:
     # ------------------------------------------------------------------
 
     def start_agent(self, ticket: str) -> AgentSession:
-        """에이전트 시작. 현재 tmux 세션에 window 생성 → claude 실행."""
+        """에이전트 시작. 현재 tmux 세션에 background window 생성 → claude 실행."""
         existing = self._store.read_agent(ticket)
         if existing.status == AgentStatus.ACTIVE and self._window_exists(ticket):
             return existing
@@ -146,21 +146,22 @@ class AgentService:
         if self._window_exists(ticket):
             self._run(["tmux", "kill-window", "-t", target])
 
-        # 새 window 생성
+        # 새 background window 생성 (-d: detached, 포커스 이동 없음)
         self._run(["tmux", "new-window", "-t", session, "-n", window_name, "-d"])
 
-        # claude 명령 전송
+        # claude 실행 — worklog 지시를 system prompt로 추가
         issue = self._store.read_issue(ticket)
         binary = self._config.agent.binary
-        plan = self._store.read_plan(ticket)
-        plan_hint = f" Plan: .board/issues/{ticket}/plan.md" if plan else ""
-
-        prompt = (
-            f"#{ticket}: {issue.title}.{plan_hint} "
-            f"Worklog: .board/issues/{ticket}/worklog.jsonl"
+        worklog_instruction = (
+            f"After each meaningful code change, append a worklog entry to "
+            f".board/issues/{ticket}/worklog.jsonl "
+            f"with fields: at (ISO8601), workDone, nextAction."
         )
-        safe_prompt = prompt.replace("'", "'\\''")
-        cmd = f"cd '{wt_path}' && {binary} --print '{safe_prompt}'"
+        safe_instruction = worklog_instruction.replace("'", "'\\''")
+        cmd = (
+            f"cd '{wt_path}' && {binary} "
+            f"--append-system-prompt '{safe_instruction}'"
+        )
         self._run(["tmux", "send-keys", "-t", target, cmd, "Enter"])
 
         # PID 기록
@@ -180,6 +181,16 @@ class AgentService:
         )
         self._store.write_agent(ticket, agent)
         return agent
+
+    def send_command(self, ticket: str, command: str) -> bool:
+        """에이전트 window에 명령을 전송. 성공 여부 반환."""
+        if not self._window_exists(ticket):
+            return False
+        target = self._window_target(ticket)
+        # 특수문자 이스케이프 (tmux send-keys에서 쌍따옴표 문제 방지)
+        safe_cmd = command.replace("\\", "\\\\").replace('"', '\\"')
+        result = self._run(["tmux", "send-keys", "-t", target, safe_cmd, "Enter"])
+        return result.returncode == 0
 
     def resume_agent(self, ticket: str) -> AgentSession:
         """에이전트 resume. window가 살아있으면 재연결, 아니면 새로 시작."""

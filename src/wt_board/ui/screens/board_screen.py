@@ -53,6 +53,29 @@ class BoardScreen(Screen):
         Binding("down,j", "card_down", "Down", show=False),
     ]
 
+    def _build_agent_service(self):
+        """AgentService 인스턴스 생성."""
+        if self._store is None:
+            return None
+        try:
+            from wt_board.services.agent_service import AgentService
+            return AgentService(self._store, self._config)
+        except Exception:
+            return None
+
+    def _build_pipeline_service(self, agent_service=None):
+        """PipelineService 인스턴스 생성."""
+        if self._store is None:
+            return None
+        try:
+            from wt_board.services.pipeline_service import PipelineService
+            from wt_board.services.agent_service import AgentService
+            if agent_service is None:
+                agent_service = AgentService(self._store, self._config)
+            return PipelineService(self._store, self._config, agent_service)
+        except Exception:
+            return None
+
     CSS_PATH = "../styles/board.tcss"
 
     # Current column index (reactive so we can track it)
@@ -327,7 +350,7 @@ class BoardScreen(Screen):
                 col.set_focused_card(-1)
 
     def action_open_detail(self) -> None:
-        """Enter → 상세 화면 + 에이전트 자동 시작."""
+        """Enter → 상세 화면."""
         if self._sidebar_focused:
             self._exit_sidebar()
             return
@@ -337,36 +360,18 @@ class BoardScreen(Screen):
             return
         from wt_board.ui.screens.detail_screen import DetailScreen
         sync_svc = self._get_sync_service()
+        agent_svc = self._build_agent_service()
+        pipeline_svc = self._build_pipeline_service(agent_service=agent_svc)
         self.app.push_screen(
             DetailScreen(
                 issue=issue,
                 store=self._store,
                 sync_service=sync_svc,
                 config=self._config,
+                pipeline_service=pipeline_svc,
+                agent_service=agent_svc,
             )
         )
-
-    def action_focus_agent(self) -> None:
-        """a → 에이전트 tmux 윈도우로 포커스 전환."""
-        issue = self._current_issue()
-        if issue is None:
-            self.notify("이슈를 선택해주세요.", severity="warning")
-            return
-        if self._store is None:
-            return
-        try:
-            from wt_board.services.agent_service import AgentService
-            from wt_board.models.agent import AgentStatus
-            agent_svc = AgentService(self._store, self._config)
-            agent = agent_svc.resume_agent(issue.ticket)
-            self._agent_map[issue.ticket] = AgentStatus.ACTIVE
-            self._rebuild_board()
-            self._highlight_current()
-            ok, reason = agent_svc.focus_agent(issue.ticket)
-            if not ok:
-                self.notify(f"tmux 전환 실패: {reason}", severity="warning")
-        except Exception as exc:
-            self.notify(f"에이전트 오류: {exc}", severity="error")
 
     def _get_sync_service(self):
         """Build a SyncService if tracker is configured."""
@@ -462,14 +467,25 @@ class BoardScreen(Screen):
                 from wt_board.services.issue_service import IssueService
                 svc = IssueService(self._store, self._config)
                 issue = svc.create_issue(ticket, title=title)
+                issue.pipeline_step = "plan"
                 if desc:
                     issue.description = desc
                     issue.assignee = assignee
+                if desc or True:
                     self._store.write_issue(ticket, issue)
+                if desc:
                     self._store.write_description(ticket, desc)
+                # 새 이슈 → background agent 자동 시작
+                try:
+                    from wt_board.services.agent_service import AgentService
+                    from wt_board.models.agent import AgentStatus
+                    agent_svc = AgentService(self._store, self._config)
+                    agent_svc.start_agent(ticket)
+                    self._agent_map[ticket] = AgentStatus.ACTIVE
+                except Exception:
+                    pass
                 self._issues_by_status.clear()
                 self._tc_map.clear()
-                self._agent_map.clear()
                 self._load_data()
                 self._rebuild_board()
                 self.col_index = self._next_nonempty_col(-1, +1)
