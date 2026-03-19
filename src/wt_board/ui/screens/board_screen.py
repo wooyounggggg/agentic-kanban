@@ -42,8 +42,8 @@ class BoardScreen(Screen):
 
     BINDINGS = [
         Binding("n", "new_issue", "New"),
-        Binding("enter", "open_agent", "Agent"),
-        Binding("i", "open_detail", "Info"),
+        Binding("enter", "open_detail", "Open"),
+        Binding("a", "focus_agent", "Agent"),
         Binding("m", "move_card", "Move"),
         Binding("s", "sync", "Sync"),
         Binding("x", "delete_item", "Delete"),
@@ -327,35 +327,8 @@ class BoardScreen(Screen):
             else:
                 col.set_focused_card(-1)
 
-    def action_open_agent(self) -> None:
-        """Enter → ensure agent → tmux select-window로 전환."""
-        if self._sidebar_focused:
-            self._exit_sidebar()
-            return
-        issue = self._current_issue()
-        if issue is None:
-            self.notify("이슈를 선택해주세요.", severity="warning")
-            return
-        if self._store is None:
-            return
-        try:
-            from wt_board.services.agent_service import AgentService
-            from wt_board.models.agent import AgentStatus
-            agent_svc = AgentService(self._store, self._config)
-            # 1. ensure agent is running
-            agent = agent_svc.resume_agent(issue.ticket)
-            self._agent_map[issue.ticket] = AgentStatus.ACTIVE
-            self._rebuild_board()
-            self._highlight_current()
-            # 2. tmux select-window
-            ok, reason = agent_svc.focus_agent(issue.ticket)
-            if not ok:
-                self.notify(f"tmux 전환 실패: {reason}", severity="warning")
-        except Exception as exc:
-            self.notify(f"에이전트 오류: {exc}", severity="error")
-
     def action_open_detail(self) -> None:
-        """i → 이슈 상세 정보 화면."""
+        """Enter → 상세 화면 + 에이전트 자동 시작."""
         if self._sidebar_focused:
             self._exit_sidebar()
             return
@@ -373,6 +346,28 @@ class BoardScreen(Screen):
                 config=self._config,
             )
         )
+
+    def action_focus_agent(self) -> None:
+        """a → 에이전트 tmux 윈도우로 포커스 전환."""
+        issue = self._current_issue()
+        if issue is None:
+            self.notify("이슈를 선택해주세요.", severity="warning")
+            return
+        if self._store is None:
+            return
+        try:
+            from wt_board.services.agent_service import AgentService
+            from wt_board.models.agent import AgentStatus
+            agent_svc = AgentService(self._store, self._config)
+            agent = agent_svc.resume_agent(issue.ticket)
+            self._agent_map[issue.ticket] = AgentStatus.ACTIVE
+            self._rebuild_board()
+            self._highlight_current()
+            ok, reason = agent_svc.focus_agent(issue.ticket)
+            if not ok:
+                self.notify(f"tmux 전환 실패: {reason}", severity="warning")
+        except Exception as exc:
+            self.notify(f"에이전트 오류: {exc}", severity="error")
 
     def _get_sync_service(self):
         """Build a SyncService if tracker is configured."""
@@ -600,6 +595,6 @@ class BoardScreen(Screen):
                     self.card_index = card_idx
                     self._highlight_current()
                     if already_selected:
-                        self.action_open_agent()
+                        self.action_open_detail()
                     return
 
