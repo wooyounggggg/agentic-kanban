@@ -107,6 +107,11 @@ class ProjectConfig:
 
 
 @dataclass
+class UIConfig:
+    theme: str = "brown"
+
+
+@dataclass
 class BoardConfig:
     project: ProjectConfig = field(default_factory=ProjectConfig)
     statuses: List[StatusDef] = field(default_factory=lambda: list(DEFAULT_STATUSES))
@@ -114,6 +119,7 @@ class BoardConfig:
     tracker: TrackerConfig = field(default_factory=TrackerConfig)
     agent: AgentConfig = field(default_factory=AgentConfig)
     pipeline: List[PipelineStep] = field(default_factory=lambda: list(DEFAULT_PIPELINE))
+    ui: UIConfig = field(default_factory=UIConfig)
 
     @classmethod
     def from_yaml(cls, path: Path) -> "BoardConfig":
@@ -188,6 +194,13 @@ class BoardConfig:
                 for p in raw_pipeline
             ]
 
+        # UI
+        ui_raw = data.get("ui", {})
+        if ui_raw:
+            config.ui = UIConfig(
+                theme=ui_raw.get("theme", "brown"),
+            )
+
         return config
 
     def to_yaml(self, path: Path) -> None:
@@ -236,6 +249,9 @@ class BoardConfig:
             }
             for p in self.pipeline
         ]
+        data["ui"] = {
+            "theme": self.ui.theme,
+        }
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)

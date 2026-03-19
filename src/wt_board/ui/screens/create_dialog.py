@@ -486,3 +486,83 @@ class MoveDialog(ModalScreen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "move-btn-cancel":
             self.dismiss(None)
+
+
+# ---------------------------------------------------------------------------
+# 테마 선택 다이얼로그
+# ---------------------------------------------------------------------------
+
+class ThemeDialog(ModalScreen):
+    """테마 선택 다이얼로그 — 4종 테마 중 선택."""
+
+    BINDINGS = [
+        Binding("escape", "cancel", "취소"),
+        Binding("enter", "select", "선택", show=False),
+    ]
+
+    DEFAULT_CSS = f"""
+    ThemeDialog {{
+        align: center middle;
+    }}
+    ThemeDialog > Vertical {{
+        {_DIALOG_CSS}
+        width: 44;
+        max-height: 16;
+    }}
+    ThemeDialog .dialog-title {{
+        color: #58a6ff;
+        text-style: bold;
+        margin-bottom: 1;
+    }}
+    """
+
+    THEME_NAMES = ["brown", "catppuccin", "nord", "github-dark"]
+    THEME_LABELS = {
+        "brown": "Brown (default warm earth tones)",
+        "catppuccin": "Catppuccin (soft pastel)",
+        "nord": "Nord (arctic blue)",
+        "github-dark": "GitHub Dark",
+    }
+
+    def __init__(self, current_theme: str = "brown", **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._current_theme = current_theme
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Static("테마 선택", classes="dialog-title")
+            opt = OptionList(id="theme-list")
+            for name in self.THEME_NAMES:
+                label = self.THEME_LABELS.get(name, name)
+                marker = " [green]◀[/]" if name == self._current_theme else ""
+                opt.add_option(f"{label}{marker}")
+            yield opt
+            yield Button("취소", variant="default", id="theme-btn-cancel")
+
+    def on_mount(self) -> None:
+        opt = self.query_one("#theme-list", OptionList)
+        opt.focus()
+        # Highlight current theme
+        try:
+            idx = self.THEME_NAMES.index(self._current_theme)
+            opt.highlighted = idx
+        except (ValueError, Exception):
+            pass
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+    def action_select(self) -> None:
+        opt = self.query_one("#theme-list", OptionList)
+        idx = opt.highlighted
+        if idx is not None and 0 <= idx < len(self.THEME_NAMES):
+            self.dismiss(self.THEME_NAMES[idx])
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        idx = event.option_index
+        if 0 <= idx < len(self.THEME_NAMES):
+            self.dismiss(self.THEME_NAMES[idx])
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "theme-btn-cancel":
+            self.dismiss(None)

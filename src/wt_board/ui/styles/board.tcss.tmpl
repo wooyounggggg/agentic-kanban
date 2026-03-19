@@ -1,0 +1,94 @@
+/* board.tcss — generated from theme template */
+
+/* --------------------------------------------------------------------------
+   App-wide defaults
+   -------------------------------------------------------------------------- */
+Screen {{
+    background: {bg};
+    color: {text};
+}}
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+Header {{
+    background: {header_bg};
+    color: {accent_light};
+    text-style: bold;
+    height: 1;
+}}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+Footer {{
+    background: {header_bg};
+    color: {muted};
+    height: 1;
+}}
+
+/* --------------------------------------------------------------------------
+   Board layout
+   -------------------------------------------------------------------------- */
+#board-layout {{
+    height: 1fr;
+    width: 100%;
+}}
+
+/* Sidebar styles are in the Sidebar widget's DEFAULT_CSS */
+
+/* --------------------------------------------------------------------------
+   Columns area
+   -------------------------------------------------------------------------- */
+#board-columns {{
+    height: 1fr;
+    width: 1fr;
+    overflow-x: auto;
+}}
+
+/* KanbanColumn */
+KanbanColumn {{
+    width: 1fr;
+    min-width: 22;
+    height: 100%;
+    margin: 0 1;
+    border: round {border};
+    overflow-y: auto;
+}}
+
+KanbanColumn .col-header {{
+    background: {surface};
+    color: {accent_light};
+    text-style: bold;
+    padding: 0 1;
+    text-align: center;
+    height: 1;
+}}
+
+KanbanColumn .col-empty {{
+    color: {muted};
+    padding: 1;
+    text-align: center;
+    height: 3;
+}}
+
+/* --------------------------------------------------------------------------
+   Issue cards
+   -------------------------------------------------------------------------- */
+IssueCard {{
+    height: auto;
+    padding: 0 1;
+    margin: 1 1 0 1;
+    border: tall {border};
+    background: {surface};
+}}
+
+IssueCard:focus {{
+    border: tall {accent};
+    background: {surface_alt};
+}}
+
+IssueCard.selected {{
+    border: tall {accent};
+    background: {surface_alt};
+}}

@@ -82,7 +82,7 @@ class Sidebar(Vertical):
         yield Static("[bold cyan]wt-board[/]", classes="sb-title")
         yield Static("Projects", id="sb-section-label", classes="sb-section")
         yield Vertical(id="sb-project-list")
-        yield Static("[dim]n 추가  x 삭제[/]", classes="sb-hint")
+        yield Static("[dim]n 추가  x 삭제\nT 테마[/]", classes="sb-hint")
 
     def on_mount(self) -> None:
         self._render_projects()

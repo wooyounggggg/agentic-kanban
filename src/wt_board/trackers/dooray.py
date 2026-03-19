@@ -34,10 +34,45 @@ class DoorayTracker(TrackerPlugin):
     def __init__(self, cli_path: str, api_key: str = "") -> None:
         self._cli_path = os.path.expanduser(cli_path)
         self._api_key = api_key
+        self._member_cache: dict = {}  # userCode -> display name
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _resolve_member_name(self, user_code: str) -> str:
+        """Resolve a Dooray userCode to display name. Results are cached.
+
+        Falls back to the raw ``user_code`` value if the lookup fails.
+        """
+        if not user_code:
+            return user_code
+        if user_code in self._member_cache:
+            return self._member_cache[user_code]
+        data = self._run(["search-members", "--user-code", user_code])
+        name = user_code  # fallback
+        if isinstance(data, list) and data:
+            first = data[0]
+            if isinstance(first, dict):
+                name = first.get("name") or user_code
+        elif isinstance(data, dict):
+            name = data.get("name") or user_code
+        self._member_cache[user_code] = name
+        return name
+
+    @staticmethod
+    def _format_date(iso_date: str) -> str:
+        """Format an ISO8601 date string to ``YYYY-MM-DD HH:MM``."""
+        if not iso_date:
+            return iso_date
+        # Trim timezone and seconds: "2026-03-05T17:12:40+09:00" -> "2026-03-05 17:12"
+        try:
+            # Replace T separator and drop everything after minutes
+            normalized = iso_date.replace("T", " ")
+            # Keep only YYYY-MM-DD HH:MM (first 16 chars after normalization)
+            return normalized[:16]
+        except Exception:
+            return iso_date
 
     def _env(self) -> dict:
         env = os.environ.copy()
@@ -195,15 +230,20 @@ class DoorayTracker(TrackerPlugin):
             if isinstance(creator, dict):
                 member = creator.get("member") or {}
                 if isinstance(member, dict):
-                    author = (
-                        member.get("name")
-                        or member.get("organizationMemberId")
-                        or ""
-                    )
+                    author = member.get("name") or ""
+                    if not author:
+                        # Try to resolve via userCode -> display name
+                        user_code = member.get("userCode") or ""
+                        if user_code:
+                            author = self._resolve_member_name(user_code)
+                        else:
+                            # Last resort: raw organizationMemberId
+                            author = member.get("organizationMemberId") or ""
             author = author or "Unknown"
 
             # Date
-            date: str = comment.get("createdAt") or ""
+            raw_date: str = comment.get("createdAt") or ""
+            date = self._format_date(raw_date) if raw_date else ""
 
             # Content
             body = comment.get("body") or {}

@@ -45,6 +45,7 @@ class BoardScreen(Screen):
         Binding("enter", "open_detail", "Open"),
         Binding("m", "move_card", "Move"),
         Binding("s", "sync", "Sync"),
+        Binding("T", "theme", "Theme"),
         Binding("x", "delete_item", "Delete"),
         Binding("/", "search", "Search"),
         Binding("left,h", "col_left", "Left", show=False),
@@ -592,6 +593,37 @@ class BoardScreen(Screen):
 
     def action_search(self) -> None:
         self.notify("Search — not yet implemented.", severity="information")
+
+    def action_theme(self) -> None:
+        """T — 테마 선택 다이얼로그 열기."""
+        current_theme = self._config.ui.theme if hasattr(self._config, "ui") else "brown"
+
+        def on_result(name: str) -> None:
+            if name is None:
+                return
+            try:
+                from wt_board.ui.themes import apply_theme
+                apply_theme(name)
+                self.app.reload_css()
+            except Exception as exc:
+                self.notify(f"테마 적용 실패: {exc}", severity="error")
+                return
+
+            # Save to config
+            try:
+                if self._store is not None:
+                    from wt_board.store.board_store import find_board_root
+                    board_path = find_board_root()
+                    if board_path is not None:
+                        self._config.ui.theme = name
+                        self._config.to_yaml(board_path / "config.yaml")
+            except Exception:
+                pass
+
+            self.notify(f"테마 변경: [bold]{name}[/]", severity="information")
+
+        from wt_board.ui.screens.create_dialog import ThemeDialog
+        self.app.push_screen(ThemeDialog(current_theme=current_theme), callback=on_result)
 
     # ------------------------------------------------------------------
     # Mouse click

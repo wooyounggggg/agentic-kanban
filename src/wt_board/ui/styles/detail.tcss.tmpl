@@ -1,114 +1,114 @@
-/* detail.tcss — warm brown/earth-tone theme */
+/* detail.tcss — generated from theme template */
 
-#detail-panel {
+#detail-panel {{
     height: 1fr;
     width: 100%;
     padding: 1;
     overflow-y: auto;
-}
+}}
 
-#detail-header {
-    color: #d4ccc4;
+#detail-header {{
+    color: {text};
     height: auto;
     margin-bottom: 1;
-    border-bottom: solid #4a4440;
+    border-bottom: solid {border};
     padding-bottom: 1;
-}
+}}
 
 /* Section headers */
 #cl-section-header,
 #plan-section-header,
 #worklog-section-header,
 #desc-section-header,
-#comments-section-header {
-    color: #c4956a;
+#comments-section-header {{
+    color: {accent};
     text-style: bold;
     height: 1;
     margin-top: 1;
-}
+}}
 
 /* Checklist */
-ChecklistWidget {
+ChecklistWidget {{
     height: auto;
     max-height: 20;
     overflow-y: auto;
-}
+}}
 
-ChecklistWidget .cl-item {
+ChecklistWidget .cl-item {{
     padding: 0 1;
     height: 1;
-}
+}}
 
-ChecklistWidget .cl-item.cl-selected {
-    background: #3a3430;
-}
+ChecklistWidget .cl-item.cl-selected {{
+    background: {surface_alt};
+}}
 
-ChecklistWidget .cl-item.cl-done {
-    color: #7a7470;
-}
+ChecklistWidget .cl-item.cl-done {{
+    color: {muted};
+}}
 
 /* Plan / Description / Comments viewer */
-PlanViewer {
+PlanViewer {{
     height: auto;
     max-height: 24;
     overflow-y: auto;
     padding: 0 1;
-    border: round #4a4440;
+    border: round {border};
     text-align: left;
-}
+}}
 
 /* Fix markdown heading alignment — MarkdownH1 DEFAULT_CSS uses content-align: center */
-Markdown {
+Markdown {{
     margin: 0;
     padding: 0;
-}
+}}
 
-MarkdownH1 {
+MarkdownH1 {{
     text-align: left;
     content-align: left top;
-}
+}}
 
-MarkdownH2 {
+MarkdownH2 {{
     text-align: left;
     content-align: left top;
-}
+}}
 
-MarkdownH3 {
+MarkdownH3 {{
     text-align: left;
     content-align: left top;
-}
+}}
 
-PlanViewer MarkdownH1 {
+PlanViewer MarkdownH1 {{
     text-align: left;
     content-align: left top;
-}
+}}
 
-PlanViewer MarkdownH2 {
+PlanViewer MarkdownH2 {{
     text-align: left;
     content-align: left top;
-}
+}}
 
-PlanViewer MarkdownH3 {
+PlanViewer MarkdownH3 {{
     text-align: left;
     content-align: left top;
-}
+}}
 
 /* Worklog */
-WorklogWidget {
+WorklogWidget {{
     height: auto;
     max-height: 20;
     overflow-y: auto;
     padding: 0 1;
-}
+}}
 
-WorklogWidget .wl-entry {
-    border-bottom: dashed #2a2420;
+WorklogWidget .wl-entry {{
+    border-bottom: dashed {surface};
     padding-bottom: 1;
     margin-bottom: 1;
     height: auto;
-}
+}}
 
-WorklogWidget .wl-empty {
-    color: #7a7470;
+WorklogWidget .wl-empty {{
+    color: {muted};
     padding: 1;
-}
+}}
