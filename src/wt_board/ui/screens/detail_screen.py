@@ -172,32 +172,23 @@ class DetailScreen(Screen):
             plan = self._store.read_plan(ticket)
             plan_note = f" Implementation plan: .board/issues/{ticket}/plan.md." if plan else ""
             prompt = (
-                f"You are working on #{ticket}: {issue.title}.{plan_note} "
-                f"After meaningful work, append to .board/issues/{ticket}/worklog.jsonl"
+                f"#{ticket}: {issue.title}.{plan_note} "
+                f"After work, append to .board/issues/{ticket}/worklog.jsonl"
             )
-            safe_prompt = prompt.replace("'", "'\\''").replace('"', '\\"')
+            # shell 명령어 문자열로 구성 (single quote로 감싸기)
+            safe_prompt = prompt.replace("'", "'\"'\"'")
+            shell_cmd = f"cd '{wt_path}' && {binary} '{safe_prompt}'"
 
-            # claude "prompt" 형태로 interactive 실행
-            cmd = f'cd \\"{wt_path}\\" && {binary} \\"{safe_prompt}\\"'
-
-            # tmux split: 왼쪽으로, 50%
+            # tmux split: 왼쪽으로, 50%, shell로 실행
             result = subprocess.run(
-                ["tmux", "split-window", "-hb", "-l", "50%", "-c", wt_path,
-                 binary, safe_prompt],
+                ["tmux", "split-window", "-hb", "-l", "50%", "sh", "-c", shell_cmd],
                 capture_output=True, text=True,
             )
 
             if result.returncode == 0:
-                # pane ID 획득
-                pid_r = subprocess.run(
-                    ["tmux", "display-message", "-t", "{left}", "-p", "#{pane_id}"],
-                    capture_output=True, text=True,
-                )
-                self._agent_pane_id = pid_r.stdout.strip() if pid_r.returncode == 0 else None
-
                 # agent.yaml 갱신
                 from wt_board.models.agent import AgentSession, AgentStatus
-                agent = AgentSession(status=AgentStatus.ACTIVE, tmux_pane=self._agent_pane_id or "")
+                agent = AgentSession(status=AgentStatus.ACTIVE, tmux_pane="split")
                 self._store.write_agent(ticket, agent)
                 self._agent = agent
 
