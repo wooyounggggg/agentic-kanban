@@ -1,43 +1,8 @@
-/* detail.tcss — 50/50 split detail screen */
+/* detail.tcss — single panel detail screen (agent is tmux split) */
 
-/* --------------------------------------------------------------------------
-   Layout
-   -------------------------------------------------------------------------- */
-#detail-layout {
+#detail-panel {
     height: 1fr;
     width: 100%;
-}
-
-/* --------------------------------------------------------------------------
-   Left panel — agent terminal
-   -------------------------------------------------------------------------- */
-#left-panel {
-    width: 1fr;
-    height: 100%;
-    background: #0d1117;
-    border-right: solid #30363d;
-    padding: 1;
-}
-
-#agent-panel-header {
-    color: #58a6ff;
-    text-style: bold;
-    height: 1;
-    border-bottom: solid #30363d;
-    margin-bottom: 1;
-}
-
-#agent-status {
-    color: #c9d1d9;
-    height: auto;
-}
-
-/* --------------------------------------------------------------------------
-   Right panel — issue info
-   -------------------------------------------------------------------------- */
-#right-panel {
-    width: 1fr;
-    height: 100%;
     padding: 1;
     overflow-y: auto;
 }
@@ -50,21 +15,19 @@
     padding-bottom: 1;
 }
 
-/* --------------------------------------------------------------------------
-   Section headers
-   -------------------------------------------------------------------------- */
+/* Section headers */
 #cl-section-header,
 #plan-section-header,
-#worklog-section-header {
+#worklog-section-header,
+#desc-section-header,
+#comments-section-header {
     color: #58a6ff;
     text-style: bold;
     height: 1;
     margin-top: 1;
 }
 
-/* --------------------------------------------------------------------------
-   Checklist
-   -------------------------------------------------------------------------- */
+/* Checklist */
 ChecklistWidget {
     height: auto;
     max-height: 20;
@@ -84,9 +47,7 @@ ChecklistWidget .cl-item.cl-done {
     color: #6e7681;
 }
 
-/* --------------------------------------------------------------------------
-   Plan viewer
-   -------------------------------------------------------------------------- */
+/* Plan / Description / Comments viewer */
 PlanViewer {
     height: auto;
     max-height: 24;
@@ -95,9 +56,7 @@ PlanViewer {
     border: round #30363d;
 }
 
-/* --------------------------------------------------------------------------
-   Worklog
-   -------------------------------------------------------------------------- */
+/* Worklog */
 WorklogWidget {
     height: auto;
     max-height: 20;

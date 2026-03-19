@@ -43,7 +43,6 @@ class BoardScreen(Screen):
     BINDINGS = [
         Binding("n", "new_issue", "New"),
         Binding("enter", "open_detail", "Open"),
-        Binding("a", "focus_agent", "Agent"),
         Binding("m", "move_card", "Move"),
         Binding("s", "sync", "Sync"),
         Binding("x", "delete_item", "Delete"),
