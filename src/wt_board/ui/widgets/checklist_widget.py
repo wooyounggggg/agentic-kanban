@@ -48,14 +48,6 @@ class ChecklistWidget(Vertical):
         padding: 0 1;
         height: 1;
     }
-
-    ChecklistWidget .cl-item.cl-selected {
-        background: $accent-darken-2;
-    }
-
-    ChecklistWidget .cl-item.cl-done {
-        color: $text-muted;
-    }
     """
 
     focused_index: reactive[int] = reactive(0)

@@ -65,7 +65,6 @@ class WorklogWidget(VerticalScroll):
     }
 
     WorklogWidget .wl-empty {
-        color: $text-muted;
         padding: 1;
     }
     """

@@ -604,7 +604,6 @@ class BoardScreen(Screen):
             try:
                 from wt_board.ui.themes import apply_theme
                 apply_theme(name)
-                self.app.reload_css()
             except Exception as exc:
                 self.notify(f"테마 적용 실패: {exc}", severity="error")
                 return
@@ -620,7 +619,10 @@ class BoardScreen(Screen):
             except Exception:
                 pass
 
-            self.notify(f"테마 변경: [bold]{name}[/]", severity="information")
+            self.notify(
+                f"테마 '{name}' 적용됨. 앱을 재시작하면 반영됩니다.",
+                severity="information",
+            )
 
         from wt_board.ui.screens.create_dialog import ThemeDialog
         self.app.push_screen(ThemeDialog(current_theme=current_theme), callback=on_result)

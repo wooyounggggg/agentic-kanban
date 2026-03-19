@@ -36,19 +36,15 @@ class KanbanColumn(Vertical):
         width: 1fr;
         height: 100%;
         margin: 0 1;
-        border: round $surface-darken-2;
     }
 
     KanbanColumn .col-header {
-        background: $primary-darken-2;
-        color: $text;
         padding: 0 1;
         text-align: center;
         height: 1;
     }
 
     KanbanColumn .col-empty {
-        color: $text-muted;
         padding: 1;
         text-align: center;
     }

@@ -30,16 +30,6 @@ class IssueCard(Static):
         height: auto;
         padding: 0 1;
         margin: 0 0 1 0;
-        border: tall #4a4440;
-        background: #2a2420;
-    }
-    IssueCard:focus {
-        border: tall #c4956a;
-        background: #3a3430;
-    }
-    IssueCard.selected {
-        border: tall #c4956a;
-        background: #3a3430;
     }
     """
 

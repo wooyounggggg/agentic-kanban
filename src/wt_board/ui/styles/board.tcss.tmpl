@@ -35,7 +35,46 @@ Footer {{
     width: 100%;
 }}
 
-/* Sidebar styles are in the Sidebar widget's DEFAULT_CSS */
+/* --------------------------------------------------------------------------
+   Sidebar
+   -------------------------------------------------------------------------- */
+Sidebar {{
+    background: {surface};
+    border-right: solid {border};
+}}
+
+Sidebar.focused-mode {{
+    border-right: solid {accent};
+}}
+
+Sidebar .sb-title {{
+    color: {accent};
+}}
+
+Sidebar .sb-section {{
+    color: {muted};
+}}
+
+Sidebar .sb-section-active {{
+    color: {accent};
+}}
+
+Sidebar .sb-item {{
+    color: {muted};
+}}
+
+Sidebar .sb-item-current {{
+    color: {text};
+}}
+
+Sidebar .sb-item-hover {{
+    color: {accent};
+    background: {surface_alt};
+}}
+
+Sidebar .sb-hint {{
+    color: {muted};
+}}
 
 /* --------------------------------------------------------------------------
    Columns area

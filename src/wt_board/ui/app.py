@@ -21,9 +21,23 @@ class WtBoardApp(App):
     ]
 
     def __init__(self, board_path: Optional[str] = None) -> None:
+        self._apply_startup_theme()
         super().__init__()
         self.board_path = board_path
         self._last_quit_press = 0.0
+
+    def _apply_startup_theme(self) -> None:
+        """Apply the saved theme before Textual loads CSS."""
+        try:
+            from wt_board.store.board_store import find_board_root
+            from wt_board.models.config import BoardConfig
+            from wt_board.ui.themes import apply_theme
+            bp = find_board_root()
+            if bp:
+                config = BoardConfig.from_yaml(bp / "config.yaml")
+                apply_theme(config.ui.theme)
+        except Exception:
+            pass
 
     def on_mount(self) -> None:
         self.push_screen(BoardScreen(board_path=self.board_path))
