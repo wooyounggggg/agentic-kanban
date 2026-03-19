@@ -348,13 +348,13 @@ class DetailScreen(Screen):
         try:
             from wt_board.services.agent_service import AgentService
             agent_svc = AgentService(self._store, self._config)
-            if self._agent.status == AgentStatus.ACTIVE and agent_svc.check_alive(self.issue.ticket):
-                agent_svc.focus_agent(self.issue.ticket)
+            self._agent = agent_svc.resume_agent(self.issue.ticket)
+            self._update_agent_status_widget()
+            ok, reason = agent_svc.focus_agent(self.issue.ticket)
+            if ok:
                 self.notify("에이전트 포커스 전환.", severity="information")
             else:
-                self._agent = agent_svc.start_agent(self.issue.ticket)
-                self._update_agent_status_widget()
-                self.notify("에이전트를 시작합니다.", severity="information")
+                self.notify(f"tmux 전환 실패: {reason}", severity="warning")
         except Exception as exc:
             self.notify(f"에이전트 오류: {exc}", severity="error")
 

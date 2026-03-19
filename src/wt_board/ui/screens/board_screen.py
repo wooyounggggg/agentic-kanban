@@ -328,7 +328,7 @@ class BoardScreen(Screen):
                 col.set_focused_card(-1)
 
     def action_open_agent(self) -> None:
-        """Enter → 에이전트 시작/resume 후 tmux 윈도우로 전환."""
+        """Enter → ensure agent → tmux select-window로 전환."""
         if self._sidebar_focused:
             self._exit_sidebar()
             return
@@ -342,12 +342,15 @@ class BoardScreen(Screen):
             from wt_board.services.agent_service import AgentService
             from wt_board.models.agent import AgentStatus
             agent_svc = AgentService(self._store, self._config)
+            # 1. ensure agent is running
             agent = agent_svc.resume_agent(issue.ticket)
             self._agent_map[issue.ticket] = AgentStatus.ACTIVE
             self._rebuild_board()
             self._highlight_current()
-            # tmux 포커스를 에이전트 윈도우로 전환
-            agent_svc.focus_agent(issue.ticket)
+            # 2. tmux select-window
+            ok, reason = agent_svc.focus_agent(issue.ticket)
+            if not ok:
+                self.notify(f"tmux 전환 실패: {reason}", severity="warning")
         except Exception as exc:
             self.notify(f"에이전트 오류: {exc}", severity="error")
 
