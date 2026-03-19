@@ -50,14 +50,14 @@ class IssueCard(Static):
         issue: Issue,
         tc_progress: str = "",
         agent_status: str = AgentStatus.IDLE,
-        status_icon: str = "",
+        status_label: str = "",
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.issue = issue
         self.tc_progress = tc_progress
         self._agent_status = agent_status
-        self._status_icon = status_icon
+        self._status_label = status_label
 
     def _build_markup(self) -> str:
         from rich.markup import escape
@@ -70,21 +70,21 @@ class IssueCard(Static):
         badge = _AGENT_BADGE.get(self._agent_status, "")
         line1 = f"[bold cyan]#{ticket}[/] {title}{badge}"
 
-        # Line 2: status + assignee + TC
+        # Line 2: status chip + assignee + TC + tags
         parts = []
-        if self._status_icon:
-            parts.append(f"{self._status_icon}")
+        if self._status_label:
+            parts.append(f"[on #30363d] {self._status_label} [/]")
         if self.issue.assignee:
             parts.append(f"[dim]@{escape(self.issue.assignee)}[/]")
         if self.tc_progress:
             parts.append(f"[dim]{self.tc_progress} TC[/]")
         if self.issue.labels:
-            tags = " ".join(f"[dim magenta]{escape(t)}[/]" for t in self.issue.labels[:3])
+            tags = " ".join(f"[on #30363d dim magenta] {escape(t)} [/]" for t in self.issue.labels[:3])
             parts.append(tags)
 
         line2 = ""
         if parts:
-            line2 = "\n" + "  ".join(parts)
+            line2 = "\n" + " ".join(parts)
 
         return line1 + line2
 

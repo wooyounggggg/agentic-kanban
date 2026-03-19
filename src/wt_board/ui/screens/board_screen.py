@@ -459,7 +459,7 @@ class BoardScreen(Screen):
     def action_start_agent(self) -> None:
         issue = self._current_issue()
         if issue is None:
-            self.notify("No issue selected.", severity="warning")
+            self.notify("이슈를 선택해주세요.", severity="warning")
             return
         if self._store is None:
             self.notify("저장소가 연결되어 있지 않습니다.", severity="error")
@@ -468,22 +468,13 @@ class BoardScreen(Screen):
             from wt_board.services.agent_service import AgentService
             from wt_board.models.agent import AgentStatus
             agent_svc = AgentService(self._store, self._config)
-            agent = self._store.read_agent(issue.ticket)
+            agent = agent_svc.resume_agent(issue.ticket)
             if agent.status == AgentStatus.ACTIVE:
                 agent_svc.focus_agent(issue.ticket)
-                self.notify(
-                    f"[cyan]#{issue.ticket}[/] 에이전트 포커스 전환.",
-                    severity="information",
-                )
-            else:
-                agent_svc.start_agent(issue.ticket)
                 self._agent_map[issue.ticket] = AgentStatus.ACTIVE
                 self._rebuild_board()
                 self._highlight_current()
-                self.notify(
-                    f"[cyan]#{issue.ticket}[/] 에이전트를 시작합니다.",
-                    severity="information",
-                )
+                self.notify("에이전트 포커스 전환.", severity="information")
         except Exception as exc:
             self.notify(f"에이전트 오류: {exc}", severity="error")
 

@@ -73,6 +73,8 @@ class DetailScreen(Screen):
     def on_mount(self) -> None:
         self._load_issue_data()
         self._populate_right_panel()
+        # 자동 에이전트 시작/resume
+        self._auto_start_agent()
 
     def _load_issue_data(self) -> None:
         if self._store is None:
@@ -310,6 +312,37 @@ class DetailScreen(Screen):
         except Exception as exc:
             self.notify(f"Fetch failed: {exc}", severity="error")
 
+    def _auto_start_agent(self) -> None:
+        """상세 화면 진입 시 에이전트 자동 시작/resume."""
+        if self._store is None:
+            return
+        try:
+            from wt_board.services.agent_service import AgentService
+            agent_svc = AgentService(self._store, self._config)
+            self._agent = agent_svc.resume_agent(self.issue.ticket)
+            self._update_agent_status_widget()
+        except Exception:
+            pass  # tmux 미설치 등 — 조용히 실패
+
+    def _update_agent_status_widget(self) -> None:
+        """에이전트 상태 위젯 갱신."""
+        try:
+            widget = self.query_one("#agent-status", Static)
+            if self._agent.is_active:
+                session = self._agent.tmux_pane or "unknown"
+                widget.update(
+                    f"[green]에이전트 실행 중[/] (PID {self._agent.pid})\n"
+                    f"[dim]tmux: {session}[/]\n"
+                    f"[dim]a키로 포커스 전환[/]"
+                )
+            else:
+                widget.update(
+                    "[dim]에이전트 미실행[/]\n"
+                    "[dim]a키로 시작[/]"
+                )
+        except Exception:
+            pass
+
     def action_start_agent(self) -> None:
         if self._store is None:
             self.notify("저장소가 연결되어 있지 않습니다.", severity="error")
@@ -317,26 +350,13 @@ class DetailScreen(Screen):
         try:
             from wt_board.services.agent_service import AgentService
             agent_svc = AgentService(self._store, self._config)
-            if self._agent.status == AgentStatus.ACTIVE:
+            if self._agent.status == AgentStatus.ACTIVE and agent_svc.check_alive(self.issue.ticket):
                 agent_svc.focus_agent(self.issue.ticket)
-                self.notify(
-                    f"[cyan]#{self.issue.ticket}[/] 에이전트 포커스 전환.",
-                    severity="information",
-                )
+                self.notify("에이전트 포커스 전환.", severity="information")
             else:
                 self._agent = agent_svc.start_agent(self.issue.ticket)
-                # Refresh the agent status widget
-                try:
-                    self.query_one("#agent-status", Static).update(
-                        f"[green]Agent active[/] (pid {self._agent.pid})\n"
-                        "[dim]Attach to tmux pane to see output.[/]"
-                    )
-                except Exception:
-                    pass
-                self.notify(
-                    f"[cyan]#{self.issue.ticket}[/] 에이전트를 시작합니다.",
-                    severity="information",
-                )
+                self._update_agent_status_widget()
+                self.notify("에이전트를 시작합니다.", severity="information")
         except Exception as exc:
             self.notify(f"에이전트 오류: {exc}", severity="error")
 
