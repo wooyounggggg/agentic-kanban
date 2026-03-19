@@ -13,9 +13,9 @@ from wt_board.models.agent import AgentStatus
 
 
 _AGENT_BADGE = {
-    AgentStatus.ACTIVE: " [bold green]●[/]",
-    AgentStatus.COMPLETED: " [dim green]✓[/]",
-    AgentStatus.ERROR: " [bold red]✗[/]",
+    AgentStatus.ACTIVE: " [bold #8fac6e]●[/]",
+    AgentStatus.COMPLETED: " [dim #8fac6e]✓[/]",
+    AgentStatus.ERROR: " [bold #c47070]✗[/]",
     AgentStatus.IDLE: "",
 }
 
@@ -30,16 +30,16 @@ class IssueCard(Static):
         height: auto;
         padding: 0 1;
         margin: 0 0 1 0;
-        border: tall #45475a;
-        background: #313244;
+        border: tall #4a4440;
+        background: #2a2420;
     }
     IssueCard:focus {
-        border: tall #89b4fa;
-        background: #45475a;
+        border: tall #c4956a;
+        background: #3a3430;
     }
     IssueCard.selected {
-        border: tall #89b4fa;
-        background: #45475a;
+        border: tall #c4956a;
+        background: #3a3430;
     }
     """
 
@@ -71,22 +71,22 @@ class IssueCard(Static):
             title = title[:_MAX_TITLE - 1] + "\u2026"
 
         # Line 1: ticket + title + agent alive indicator
-        alive_badge = " [bold green]●[/]" if self._agent_alive else ""
-        line1 = f"[bold cyan]#{ticket}[/] {title}{alive_badge}"
+        alive_badge = " [bold #8fac6e]●[/]" if self._agent_alive else ""
+        line1 = f"[bold #d4a57a]#{ticket}[/] {title}{alive_badge}"
 
         # Line 2: pipeline step chip + status chip + assignee + TC + tags
         parts = []
         if self._pipeline_step:
             step_label = self._pipeline_step.capitalize()
-            parts.append(f"[on #45475a cyan] {step_label} [/]")
+            parts.append(f"[on #3a3430 #c4956a] {step_label} [/]")
         if self._status_label:
-            parts.append(f"[on #45475a] {self._status_label} [/]")
+            parts.append(f"[on #3a3430] {self._status_label} [/]")
         if self.issue.assignee:
             parts.append(f"[dim]@{escape(self.issue.assignee)}[/]")
         if self.tc_progress:
             parts.append(f"[dim]{self.tc_progress} TC[/]")
         if self.issue.labels:
-            tags = " ".join(f"[on #45475a dim magenta] {escape(t)} [/]" for t in self.issue.labels[:3])
+            tags = " ".join(f"[on #3a3430 dim #c4b06a] {escape(t)} [/]" for t in self.issue.labels[:3])
             parts.append(tags)
 
         line2 = ""

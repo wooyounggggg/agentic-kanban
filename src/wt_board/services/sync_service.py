@@ -108,14 +108,8 @@ class SyncService:
         if not isinstance(self._tracker, DoorayTracker):
             return ""
 
-        post_id = ""
-        try:
-            issue = self._store.read_issue(ticket)
-            post_id = issue.tracker.post_id or ticket
-        except Exception:
-            post_id = ticket
-
-        content: Optional[str] = self._tracker.get_comments(post_id)
+        # dooray-cli는 짧은 티켓 번호만 지원 (긴 내부 ID는 500 에러)
+        content: Optional[str] = self._tracker.get_comments(ticket)
         if content is None:
             content = ""
 
