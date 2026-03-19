@@ -26,6 +26,7 @@ class AgentService:
     def __init__(self, store: BoardStore, config: BoardConfig) -> None:
         self._store = store
         self._config = config
+        self._cached_session: Optional[str] = None
 
     # ------------------------------------------------------------------
     # tmux helpers
@@ -39,21 +40,44 @@ class AgentService:
         tmux_env = os.environ.get("TMUX", "")
         if not tmux_env:
             return None
-        # $TMUX = /tmp/tmux-501/default,12345,0 → socket,pid,pane
-        # tmux display-message로 세션 이름 가져옴
-        result = self._run(["tmux", "display-message", "-p", "#{session_name}"])
+        # $TMUX = /tmp/tmux-501/default,PID,PANE_INDEX
+        # 소켓 경로로 세션 찾기 (display-message는 Textual 터미널과 충돌)
+        parts = tmux_env.split(",")
+        if len(parts) < 2:
+            return None
+        socket_path = parts[0]
+        # tmux -S <socket> list-sessions 로 세션 이름 획득
+        result = self._run(["tmux", "-S", socket_path, "list-sessions", "-F", "#{session_name}"])
         if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
+            # 여러 세션이 있을 수 있음 — TMUX_PANE으로 현재 세션 특정
+            sessions = result.stdout.strip().split("\n")
+            if len(sessions) == 1:
+                return sessions[0]
+            # 여러 세션이면 pane ID로 찾기
+            tmux_pane = os.environ.get("TMUX_PANE", "")
+            if tmux_pane:
+                for sess in sessions:
+                    check = self._run([
+                        "tmux", "-S", socket_path, "list-panes",
+                        "-t", sess, "-a", "-F", "#{pane_id}"
+                    ])
+                    if check.returncode == 0 and tmux_pane in check.stdout:
+                        return sess
+            return sessions[0]
         return None
 
     def _session_name(self) -> str:
         """에이전트 window를 생성할 tmux 세션. 현재 세션 우선, 없으면 별도 생성."""
+        if self._cached_session:
+            return self._cached_session
         current = self._current_tmux_session()
         if current:
+            self._cached_session = current
             return current
-        # tmux 밖이면 전용 세션
         name = self._config.project.name or "wt-board"
-        return f"wtb-{name}".replace(".", "-")
+        fallback = f"wtb-{name}".replace(".", "-")
+        self._cached_session = fallback
+        return fallback
 
     def _window_target(self, ticket: str) -> str:
         return f"{self._session_name()}:agent-{ticket}"
@@ -179,23 +203,21 @@ class AgentService:
     def focus_agent(self, ticket: str) -> Tuple[bool, str]:
         """에이전트 window로 포커스 전환. (성공여부, 사유) 반환."""
         if not self._window_exists(ticket):
-            return False, "window not found"
+            return False, "agent window가 존재하지 않습니다"
 
         target = self._window_target(ticket)
-        current = self._current_tmux_session()
 
-        if current:
-            # 같은 tmux 세션 안 → select-window만
-            result = self._run(["tmux", "select-window", "-t", target])
-            if result.returncode == 0:
-                return True, "selected"
-            return False, f"select-window failed: {result.stderr.strip()}"
-        else:
-            # tmux 밖 → switch-client
-            result = self._run(["tmux", "switch-client", "-t", target])
-            if result.returncode == 0:
-                return True, "switched"
-            return False, f"switch-client failed: {result.stderr.strip()}"
+        # select-window는 항상 시도 (같은 세션이든 아니든)
+        result = self._run(["tmux", "select-window", "-t", target])
+        if result.returncode == 0:
+            return True, "selected"
+
+        # select-window 실패 시 switch-client 시도
+        result = self._run(["tmux", "switch-client", "-t", target])
+        if result.returncode == 0:
+            return True, "switched"
+
+        return False, f"tmux 전환 실패: {result.stderr.strip()}"
 
     def stop_agent(self, ticket: str) -> None:
         """에이전트 종료."""

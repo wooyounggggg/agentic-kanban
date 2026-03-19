@@ -77,7 +77,7 @@ class WtBoardApp(App):
             self.exit()
         else:
             self._last_quit_press = now
-            self.notify("q를 한 번 더 누르면 종료합니다.", severity="warning")
+            self.notify("q를 한 번 더 누르면 종료합니다.", severity="warning", timeout=2)
 
     def _check_onboarding(self) -> None:
         """최초 실행 시 Dooray API key가 없으면 온보딩 다이얼로그."""
