@@ -105,10 +105,32 @@ class DoorayTracker(TrackerPlugin):
         except json.JSONDecodeError:
             return None
 
+    def _build_member_map(self, data: dict) -> None:
+        """get-post-detail 응답에서 멤버 ID→이름 매핑 빌드."""
+        users = data.get("users") or {}
+        for role in ("to", "cc", "from"):
+            member_list = users.get(role) or []
+            for entry in member_list:
+                if isinstance(entry, dict):
+                    member = entry.get("member") or {}
+                    mid = member.get("organizationMemberId", "")
+                    name = member.get("name", "")
+                    if mid and name:
+                        self._member_cache[mid] = name
+        # creator
+        creator = data.get("creator") or {}
+        cmember = creator.get("member") or {}
+        cmid = cmember.get("organizationMemberId", "")
+        cname = cmember.get("name", "")
+        if cmid and cname:
+            self._member_cache[cmid] = cname
+
     def _parse_issue(self, data: dict) -> Optional[TrackerIssue]:
         """Convert a raw CLI JSON object into a :class:`TrackerIssue`."""
         if not data:
             return None
+        # 멤버 매핑 빌드 (이름 캐시)
+        self._build_member_map(data)
 
         ticket_id = str(data.get("id") or data.get("postId") or "")
         title = data.get("subject") or data.get("title") or ""
@@ -224,7 +246,7 @@ class DoorayTracker(TrackerPlugin):
             if log_type and log_type != "comment":
                 continue
 
-            # Author — stored under creator.member
+            # Author — creator.member에는 name이 없음, _member_cache에서 조회
             creator = comment.get("creator") or {}
             author: str = ""
             if isinstance(creator, dict):
@@ -232,13 +254,17 @@ class DoorayTracker(TrackerPlugin):
                 if isinstance(member, dict):
                     author = member.get("name") or ""
                     if not author:
-                        # Try to resolve via userCode -> display name
-                        user_code = member.get("userCode") or ""
-                        if user_code:
-                            author = self._resolve_member_name(user_code)
+                        mid = member.get("organizationMemberId") or ""
+                        # 캐시에서 이름 조회 (get_issue에서 빌드됨)
+                        if mid and mid in self._member_cache:
+                            author = self._member_cache[mid]
                         else:
-                            # Last resort: raw organizationMemberId
-                            author = member.get("organizationMemberId") or ""
+                            user_code = member.get("userCode") or ""
+                            if user_code:
+                                author = self._resolve_member_name(user_code)
+                            elif mid:
+                                # ID 끝 4자리만 표시
+                                author = f"user-{mid[-4:]}"
             author = author or "Unknown"
 
             # Date
