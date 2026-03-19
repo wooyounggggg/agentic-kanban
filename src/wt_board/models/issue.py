@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import yaml
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
 from pathlib import Path
 from typing import Optional, List
+
+from wt_board.utils import now_iso
 
 
 @dataclass
@@ -83,8 +84,5 @@ class Issue:
         with open(path, "w", encoding="utf-8") as f:
             yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
-    def now_iso(self) -> str:
-        return datetime.now().astimezone().isoformat()
-
     def touch_updated(self) -> None:
-        self.updated_at = self.now_iso()
+        self.updated_at = now_iso()

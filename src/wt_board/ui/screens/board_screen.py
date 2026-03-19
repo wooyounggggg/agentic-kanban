@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
+
+import yaml
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
 from textual.screen import Screen
-from textual.widgets import Footer, Header, Label, Static, SelectionList
+from textual.widgets import Footer, Header, Label, Static
 
 from wt_board.models.config import DEFAULT_STATUSES, BoardConfig, StatusDef
 from wt_board.models.issue import Issue
@@ -100,6 +102,7 @@ class BoardScreen(Screen):
         # {ticket: agent_status_str}
         self._agent_map: Dict[str, str] = {}
         self._statuses: List[StatusDef] = list(DEFAULT_STATUSES)
+        self._sync_service_cache = None
 
     def _auto_register_project(self) -> None:
         """Auto-register the current directory as a project if .board/ exists."""
@@ -146,7 +149,7 @@ class BoardScreen(Screen):
                         self._tc_map[ticket] = cl.progress_str
                     agent = store.read_agent(ticket)
                     self._agent_map[ticket] = agent.status
-                except Exception:
+                except (FileNotFoundError, yaml.YAMLError):
                     pass
 
             for issue in all_issues:
@@ -176,6 +179,17 @@ class BoardScreen(Screen):
                 selected_index=0 if (col_idx == self.col_index and issues) else -1,
             )
             board.mount(col)
+
+    def _refresh_board(self) -> None:
+        """Reload data and rebuild the board UI."""
+        self._issues_by_status.clear()
+        self._tc_map.clear()
+        self._agent_map.clear()
+        self._load_data()
+        self._rebuild_board()
+        self.col_index = self._next_nonempty_col(-1, +1)
+        self.card_index = 0
+        self._highlight_current()
 
     # ------------------------------------------------------------------
     # Layout
@@ -374,16 +388,31 @@ class BoardScreen(Screen):
             )
         )
 
+    def _build_tracker(self):
+        """Construct a DoorayTracker from current config, or None."""
+        try:
+            if not self._store or self._config.tracker.type != "dooray":
+                return None
+            from wt_board.trackers.dooray import DoorayTracker
+            dc = self._config.tracker.dooray
+            return DoorayTracker(dc.cli_path, dc.api_key)
+        except Exception:
+            return None
+
     def _get_sync_service(self):
-        """Build a SyncService if tracker is configured."""
+        """Build a SyncService if tracker is configured (cached per screen instance)."""
+        if self._sync_service_cache is not None:
+            return self._sync_service_cache
         try:
             if not self._store or self._config.tracker.type == "none":
                 return None
-            from wt_board.trackers.dooray import DoorayTracker
             from wt_board.services.sync_service import SyncService
-            dc = self._config.tracker.dooray
-            tracker = DoorayTracker(dc.cli_path, dc.api_key)
-            return SyncService(self._store, tracker, self._config)
+            tracker = self._build_tracker()
+            if tracker is None:
+                return None
+            svc = SyncService(self._store, tracker, self._config)
+            self._sync_service_cache = svc
+            return svc
         except Exception:
             return None
 
@@ -448,14 +477,7 @@ class BoardScreen(Screen):
 
         from wt_board.ui.screens.create_dialog import CreateDialog
         # Pass tracker for Dooray lookup
-        tracker = None
-        try:
-            if self._store and self._config.tracker.type == "dooray":
-                from wt_board.trackers.dooray import DoorayTracker
-                dc = self._config.tracker.dooray
-                tracker = DoorayTracker(dc.cli_path, dc.api_key)
-        except Exception:
-            pass
+        tracker = self._build_tracker()
 
         def on_result(result) -> None:
             if result is None:
@@ -472,8 +494,7 @@ class BoardScreen(Screen):
                 if desc:
                     issue.description = desc
                     issue.assignee = assignee
-                if desc or True:
-                    self._store.write_issue(ticket, issue)
+                self._store.write_issue(ticket, issue)
                 if desc:
                     self._store.write_description(ticket, desc)
                 # 새 이슈 → background agent 자동 시작
@@ -485,13 +506,7 @@ class BoardScreen(Screen):
                     self._agent_map[ticket] = AgentStatus.ACTIVE
                 except Exception:
                     pass
-                self._issues_by_status.clear()
-                self._tc_map.clear()
-                self._load_data()
-                self._rebuild_board()
-                self.col_index = self._next_nonempty_col(-1, +1)
-                self.card_index = 0
-                self._highlight_current()
+                self._refresh_board()
                 self.notify(f"이슈 [cyan]#{ticket}[/] 생성 완료.", severity="information")
 
         self.app.push_screen(CreateDialog(tracker=tracker), callback=on_result)
@@ -547,14 +562,7 @@ class BoardScreen(Screen):
                 from wt_board.services.issue_service import IssueService
                 svc = IssueService(self._store, self._config)
                 svc.move_issue(issue.ticket, new_status)
-                self._issues_by_status.clear()
-                self._tc_map.clear()
-                self._agent_map.clear()
-                self._load_data()
-                self._rebuild_board()
-                self.col_index = self._next_nonempty_col(-1, +1)
-                self.card_index = 0
-                self._highlight_current()
+                self._refresh_board()
                 self.notify(
                     f"[cyan]#{issue.ticket}[/] → [bold]{new_status}[/] 이동 완료.",
                     severity="information",
@@ -578,15 +586,7 @@ class BoardScreen(Screen):
             return
         try:
             updated = sync_service.sync_all()
-            # Reload board data from store
-            self._issues_by_status.clear()
-            self._tc_map.clear()
-            self._agent_map.clear()
-            self._load_data()
-            self._rebuild_board()
-            self.col_index = min(self.col_index, max(0, len(self._columns()) - 1))
-            self._clamp_card()
-            self._highlight_current()
+            self._refresh_board()
             self.notify(f"Dooray 동기화 완료 ({len(updated)}개 이슈)", severity="information")
         except Exception as exc:
             self.notify(f"동기화 실패: {exc}", severity="error")

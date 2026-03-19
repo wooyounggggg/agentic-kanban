@@ -8,6 +8,7 @@ import subprocess
 from typing import List, Optional
 
 from wt_board.trackers.base import TrackerIssue, TrackerPlugin
+from wt_board.utils import format_short_date
 
 
 class DoorayTracker(TrackerPlugin):
@@ -35,6 +36,7 @@ class DoorayTracker(TrackerPlugin):
         self._cli_path = os.path.expanduser(cli_path)
         self._api_key = api_key
         self._member_cache: dict = {}  # userCode -> display name
+        self._cached_env = None
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -60,25 +62,12 @@ class DoorayTracker(TrackerPlugin):
         self._member_cache[user_code] = name
         return name
 
-    @staticmethod
-    def _format_date(iso_date: str) -> str:
-        """Format an ISO8601 date string to ``YYYY-MM-DD HH:MM``."""
-        if not iso_date:
-            return iso_date
-        # Trim timezone and seconds: "2026-03-05T17:12:40+09:00" -> "2026-03-05 17:12"
-        try:
-            # Replace T separator and drop everything after minutes
-            normalized = iso_date.replace("T", " ")
-            # Keep only YYYY-MM-DD HH:MM (first 16 chars after normalization)
-            return normalized[:16]
-        except Exception:
-            return iso_date
-
     def _env(self) -> dict:
-        env = os.environ.copy()
-        if self._api_key:
-            env["DOORAY_API_KEY"] = self._api_key
-        return env
+        if self._cached_env is None:
+            self._cached_env = os.environ.copy()
+            if self._api_key:
+                self._cached_env["DOORAY_API_KEY"] = self._api_key
+        return self._cached_env
 
     def _run(self, args: List[str]) -> Optional[dict]:
         """Run the CLI and return parsed JSON, or ``None`` on any error."""
@@ -269,7 +258,7 @@ class DoorayTracker(TrackerPlugin):
 
             # Date
             raw_date: str = comment.get("createdAt") or ""
-            date = self._format_date(raw_date) if raw_date else ""
+            date = format_short_date(raw_date) if raw_date else ""
 
             # Content
             body = comment.get("body") or {}

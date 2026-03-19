@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import yaml
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
+
+from wt_board.utils import now_iso
 
 
 @dataclass
@@ -24,7 +25,7 @@ class ChecklistItem:
 
     def toggle(self) -> None:
         self.status = "done" if self.status == "open" else "open"
-        self.updated_at = datetime.now().astimezone().isoformat()
+        self.updated_at = now_iso()
 
 
 @dataclass
@@ -85,7 +86,7 @@ class Checklist:
             target=target,
             note=note,
             status="open",
-            updated_at=datetime.now().astimezone().isoformat(),
+            updated_at=now_iso(),
         )
         self.items.append(item)
         return item

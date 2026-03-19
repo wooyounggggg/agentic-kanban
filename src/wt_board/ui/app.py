@@ -39,20 +39,30 @@ class WtBoardApp(App):
         except Exception:
             pass
 
-    def on_mount(self) -> None:
-        self.push_screen(BoardScreen(board_path=self.board_path))
-        self._check_onboarding()
-        self._setup_auto_sync()
-
-    def _setup_auto_sync(self) -> None:
-        """Set up periodic auto-sync if configured."""
+    def _load_config(self):
+        """Return (config, board_path) or (None, None) if not found."""
         try:
             from wt_board.store.board_store import find_board_root
+            from wt_board.models.config import BoardConfig
             board_path = find_board_root()
             if board_path is None:
-                return
-            from wt_board.models.config import BoardConfig
+                return None, None
             config = BoardConfig.from_yaml(board_path / "config.yaml")
+            return config, board_path
+        except Exception:
+            return None, None
+
+    def on_mount(self) -> None:
+        config, board_path = self._load_config()
+        self.push_screen(BoardScreen(board_path=self.board_path))
+        self._check_onboarding(config, board_path)
+        self._setup_auto_sync(config)
+
+    def _setup_auto_sync(self, config=None) -> None:
+        """Set up periodic auto-sync if configured."""
+        try:
+            if config is None:
+                return
             if config.tracker.auto_sync:
                 interval = config.tracker.sync_interval or 60
                 self.set_interval(interval, self._auto_sync)
@@ -70,17 +80,7 @@ class WtBoardApp(App):
             if sync_service is None:
                 return
             sync_service.sync_all_light()
-            # Reload board data quietly
-            screen._issues_by_status.clear()
-            screen._tc_map.clear()
-            screen._agent_map.clear()
-            screen._load_data()
-            screen._rebuild_board()
-            cols = screen._columns()
-            if cols:
-                screen.col_index = min(screen.col_index, len(cols) - 1)
-                screen._clamp_card()
-                screen._highlight_current()
+            screen._refresh_board()
         except Exception as exc:
             self.notify(f"자동 동기화 실패: {exc}", severity="error")
 
@@ -93,16 +93,11 @@ class WtBoardApp(App):
             self._last_quit_press = now
             self.notify("q를 한 번 더 누르면 종료합니다.", severity="warning", timeout=2)
 
-    def _check_onboarding(self) -> None:
+    def _check_onboarding(self, config=None, board_path=None) -> None:
         """최초 실행 시 Dooray API key가 없으면 온보딩 다이얼로그."""
         try:
-            from wt_board.store.board_store import find_board_root
-            board_path = find_board_root()
-            if board_path is None:
+            if config is None or board_path is None:
                 return
-            from wt_board.models.config import BoardConfig
-            config_file = board_path / "config.yaml"
-            config = BoardConfig.from_yaml(config_file)
             if config.tracker.type == "dooray" and not config.tracker.dooray.api_key:
                 self._show_onboarding(board_path, config)
         except Exception:

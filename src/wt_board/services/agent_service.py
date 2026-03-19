@@ -5,17 +5,13 @@ from __future__ import annotations
 import os
 import subprocess
 import uuid
-from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from wt_board.models.agent import AgentSession, AgentStatus
 from wt_board.models.config import BoardConfig
 from wt_board.store.board_store import BoardStore
-
-
-def _now_iso() -> str:
-    return datetime.now().astimezone().isoformat()
+from wt_board.utils import now_iso
 
 
 def _new_wt_key() -> str:
@@ -82,13 +78,17 @@ class AgentService:
     def _window_target(self, ticket: str) -> str:
         return f"{self._session_name()}:agent-{ticket}"
 
-    def _window_exists(self, ticket: str) -> bool:
+    def _list_all_windows(self) -> set:
         session = self._session_name()
         result = self._run(["tmux", "list-windows", "-t", session, "-F", "#{window_name}"])
         if result.returncode != 0:
-            return False
-        window_name = f"agent-{ticket}"
-        return window_name in result.stdout.strip().split("\n")
+            return set()
+        return set(result.stdout.strip().split("\n"))
+
+    def _window_exists(self, ticket: str, _windows: set = None) -> bool:
+        if _windows is None:
+            _windows = self._list_all_windows()
+        return f"agent-{ticket}" in _windows
 
     def _ensure_session(self) -> str:
         """tmux 세션이 존재하는지 확인. 현재 세션이면 아무것도 안 함."""
@@ -133,7 +133,8 @@ class AgentService:
     def start_agent(self, ticket: str) -> AgentSession:
         """에이전트 시작. 현재 tmux 세션에 background window 생성 → claude 실행."""
         existing = self._store.read_agent(ticket)
-        if existing.status == AgentStatus.ACTIVE and self._window_exists(ticket):
+        windows = self._list_all_windows()
+        if existing.status == AgentStatus.ACTIVE and self._window_exists(ticket, windows):
             return existing
 
         session = self._ensure_session()
@@ -143,7 +144,7 @@ class AgentService:
         target = f"{session}:{window_name}"
 
         # 기존 window 정리
-        if self._window_exists(ticket):
+        if self._window_exists(ticket, windows):
             self._run(["tmux", "kill-window", "-t", target])
 
         # 새 background window 생성 (-d: detached, 포커스 이동 없음)
@@ -176,8 +177,8 @@ class AgentService:
             pid=pid,
             tmux_pane=target,
             wt_key=wt_key,
-            started_at=_now_iso(),
-            last_heartbeat=_now_iso(),
+            started_at=now_iso(),
+            last_heartbeat=now_iso(),
         )
         self._store.write_agent(ticket, agent)
         return agent
@@ -206,7 +207,7 @@ class AgentService:
             agent.status = AgentStatus.ACTIVE
             agent.pid = pid
             agent.tmux_pane = target
-            agent.last_heartbeat = _now_iso()
+            agent.last_heartbeat = now_iso()
             self._store.write_agent(ticket, agent)
             return agent
         return self.start_agent(ticket)
@@ -246,11 +247,12 @@ class AgentService:
 
     def monitor_all(self) -> Dict[str, AgentSession]:
         result: Dict[str, AgentSession] = {}
+        windows = self._list_all_windows()
         for ticket in self._store.list_issues():
             agent = self._store.read_agent(ticket)
-            if agent.status == AgentStatus.ACTIVE and not self._window_exists(ticket):
+            if agent.status == AgentStatus.ACTIVE and not self._window_exists(ticket, windows):
                 agent.status = AgentStatus.COMPLETED
-                agent.last_heartbeat = _now_iso()
+                agent.last_heartbeat = now_iso()
                 self._store.write_agent(ticket, agent)
             result[ticket] = agent
         return result

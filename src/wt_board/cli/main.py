@@ -76,6 +76,7 @@ def init() -> None:
     (board_dir / "issues").mkdir()
     (board_dir / "archive").mkdir()
     (board_dir / "cache").mkdir()
+    (board_dir / ".gitignore").write_text("config.yaml\n")
 
     config = BoardConfig()
     config.project.name = cwd.name

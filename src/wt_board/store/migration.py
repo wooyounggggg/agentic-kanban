@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from wt_board.models.issue import Issue, WorktreeInfo
 from wt_board.models.worklog import WorklogEntry, append_worklog
 from wt_board.store.board_store import BoardStore
+from wt_board.utils import now_iso
 
 # ---------------------------------------------------------------------------
 # Status mapping: old mode → new Issue.status
@@ -31,10 +31,6 @@ _DEFAULT_STATUS = "planning"
 
 def _map_status(mode: str) -> str:
     return _MODE_TO_STATUS.get(mode, _DEFAULT_STATUS)
-
-
-def _now_iso() -> str:
-    return datetime.now(tz=timezone.utc).astimezone().isoformat()
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +168,7 @@ def _migrate_one(
     titles: Dict[str, str],
 ) -> None:
     """Migrate a single worktree's ``.wt-state/`` to the board store."""
-    now = _now_iso()
+    now = now_iso()
 
     # ------------------------------------------------------------------ issue
     mode_data = _read_mode_json(wt_state / "mode.json")

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Dict, List, Optional
 
 from wt_board.models.config import BoardConfig
 from wt_board.models.issue import Issue, TrackerInfo, WorktreeInfo
 from wt_board.store.board_store import BoardStore
+from wt_board.utils import now_iso
 
 
 class IssueService:
@@ -18,9 +18,6 @@ class IssueService:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-
-    def _now_iso(self) -> str:
-        return datetime.now().astimezone().isoformat()
 
     def _first_status(self) -> str:
         if self._config.statuses:
@@ -52,7 +49,7 @@ class IssueService:
         from wt_board.services.worktree_service import WorktreeService
 
         effective_base = base_branch or self._config.project.base_branch
-        now = self._now_iso()
+        now = now_iso()
 
         worktree_info = WorktreeInfo(
             path=self._worktree_path(ticket),

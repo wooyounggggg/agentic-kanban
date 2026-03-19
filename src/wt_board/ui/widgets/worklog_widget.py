@@ -9,6 +9,7 @@ from textual.widgets import Static
 from textual.containers import VerticalScroll
 
 from wt_board.models.worklog import WorklogEntry
+from wt_board.utils import format_short_date
 
 
 _AUTHOR_BADGE = {
@@ -27,9 +28,7 @@ _BOX_WIDTH = 60
 def _format_entry(entry: WorklogEntry, index: int) -> str:
     author = _AUTHOR_BADGE.get(entry.author, entry.author)
     color = _AUTHOR_COLOR.get(entry.author, "white")
-    at = entry.at[:16] if entry.at else ""
-    # Format date portion: YYYY-MM-DDTHH:MM → YYYY-MM-DD HH:MM
-    at_display = at.replace("T", " ")
+    at_display = format_short_date(entry.at) if entry.at else ""
 
     header_line = f"[dim]┌[/] [{color}]{at_display}[/] [dim]({author})[/]"
     body = entry.work_done or "(no description)"

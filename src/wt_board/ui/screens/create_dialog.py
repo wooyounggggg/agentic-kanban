@@ -12,6 +12,7 @@ from textual.screen import ModalScreen
 from textual.widgets import Button, Input, OptionList, Static
 
 from wt_board.models.config import StatusDef
+from wt_board.ui.themes import THEME_NAMES
 
 
 _DIALOG_CSS = """
@@ -516,7 +517,7 @@ class ThemeDialog(ModalScreen):
     }}
     """
 
-    THEME_NAMES = ["brown", "catppuccin", "nord", "github-dark"]
+    THEME_NAMES = THEME_NAMES
     THEME_LABELS = {
         "brown": "Brown (default warm earth tones)",
         "catppuccin": "Catppuccin (soft pastel)",

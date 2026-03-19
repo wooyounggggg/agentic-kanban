@@ -52,7 +52,7 @@ class PipelineService:
         try:
             issue = self._store.read_issue(ticket)
             title = issue.title
-        except Exception:
+        except FileNotFoundError:
             title = ""
         return command.format(ticket=ticket, title=title)
 
@@ -65,7 +65,7 @@ class PipelineService:
         try:
             issue = self._store.read_issue(ticket)
             step_name = issue.pipeline_step or "plan"
-        except Exception:
+        except FileNotFoundError:
             step_name = "plan"
         step = self._step_by_name(step_name)
         if step is None and self._steps():

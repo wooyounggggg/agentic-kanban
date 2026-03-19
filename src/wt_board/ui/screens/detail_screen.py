@@ -14,7 +14,7 @@ from wt_board.models.issue import Issue
 from wt_board.models.checklist import Checklist
 from wt_board.models.worklog import WorklogEntry
 from wt_board.models.agent import AgentSession, AgentStatus
-from wt_board.models.config import BoardConfig, DEFAULT_STATUSES, StatusDef
+from wt_board.models.config import BoardConfig
 
 
 _STATUS_COLOR = {
@@ -82,15 +82,20 @@ class DetailScreen(Screen):
     def _load_issue_data(self) -> None:
         if self._store is None:
             return
-        try:
-            self._checklist = self._store.read_checklist(self.issue.ticket)
-            self._worklog = self._store.read_worklog(self.issue.ticket)
-            self._plan = self._store.read_plan(self.issue.ticket)
-            self._agent = self._store.read_agent(self.issue.ticket)
-            self._description = self._store.read_description(self.issue.ticket)
-            self._comments = self._store.read_comments(self.issue.ticket)
-        except Exception:
-            pass
+        import yaml
+        ticket = self.issue.ticket
+        for attr, method in [
+            ("_checklist", "read_checklist"),
+            ("_worklog", "read_worklog"),
+            ("_plan", "read_plan"),
+            ("_agent", "read_agent"),
+            ("_description", "read_description"),
+            ("_comments", "read_comments"),
+        ]:
+            try:
+                setattr(self, attr, getattr(self._store, method)(ticket))
+            except (FileNotFoundError, yaml.YAMLError, KeyError):
+                pass
 
     def _populate_panel(self) -> None:
         from wt_board.ui.widgets.checklist_widget import ChecklistWidget
@@ -109,7 +114,6 @@ class DetailScreen(Screen):
         ))
         self._checklist_widget = ChecklistWidget(
             checklist=self._checklist,
-            on_toggle=self._on_tc_toggle,
             id="checklist-widget",
         )
         panel.mount(self._checklist_widget)
@@ -326,5 +330,3 @@ class DetailScreen(Screen):
         except Exception as exc:
             self.notify(f"조회 실패: {exc}", severity="error")
 
-    def _on_tc_toggle(self, item) -> None:
-        pass
