@@ -73,8 +73,8 @@ class DetailScreen(Screen):
     def on_mount(self) -> None:
         self._load_issue_data()
         self._populate_right_panel()
-        # 자동 에이전트 시작/resume
-        self._auto_start_agent()
+        # tmux split으로 에이전트 실행 + 포커스
+        self._open_agent_pane()
 
     def _load_issue_data(self) -> None:
         if self._store is None:
@@ -229,6 +229,13 @@ class DetailScreen(Screen):
     # ------------------------------------------------------------------
 
     def action_pop_screen(self) -> None:
+        # 에이전트 pane은 유지 (나중에 다시 들어올 수 있으므로)
+        # 단, TUI pane으로 포커스 복귀
+        import subprocess, os
+        if hasattr(self, '_agent_pane_id') and self._agent_pane_id and os.environ.get("TMUX"):
+            # 현재 TUI pane(우측)으로 포커스 복귀 시도
+            # kill하지 않고 남겨둠 — claude가 계속 작업 가능
+            pass
         self.app.pop_screen()
 
     def action_toggle_plan(self) -> None:
@@ -312,22 +319,112 @@ class DetailScreen(Screen):
         except Exception as exc:
             self.notify(f"Fetch failed: {exc}", severity="error")
 
-    def _auto_start_agent(self) -> None:
-        """상세 화면 진입 시 에이전트 자동 시작/resume."""
+    def _open_agent_pane(self) -> None:
+        """tmux split-pane으로 왼쪽에 에이전트 실행 + 포커스."""
+        import subprocess, os
+
+        tmux_env = os.environ.get("TMUX", "")
+        if not tmux_env:
+            # tmux 밖 — 에이전트 상태만 표시
+            self._load_agent_status_only()
+            return
+
         if self._store is None:
             return
+
         try:
+            ticket = self.issue.ticket
+            # worktree 경로 확인
             from wt_board.services.agent_service import AgentService
             agent_svc = AgentService(self._store, self._config)
-            self._agent = agent_svc.resume_agent(self.issue.ticket)
+            wt_path = agent_svc._resolve_worktree_path(ticket)
+            binary = self._config.agent.binary
+
+            issue = self._store.read_issue(ticket)
+            plan = self._store.read_plan(ticket)
+            plan_hint = f" Plan: .board/issues/{ticket}/plan.md" if plan else ""
+            prompt = (
+                f"#{ticket}: {issue.title}.{plan_hint} "
+                f"Worklog: .board/issues/{ticket}/worklog.jsonl"
+            )
+            safe_prompt = prompt.replace("'", "'\\''")
+
+            # 기존 에이전트 pane이 있으면 재사용할 수 있는지 확인
+            existing = self._store.read_agent(ticket)
+            self._agent_pane_id = None
+
+            if existing.status == "active" and existing.tmux_pane:
+                # 기존 pane이 살아있는지 확인
+                check = subprocess.run(
+                    ["tmux", "has-session", "-t", existing.tmux_pane.split(":")[0]],
+                    capture_output=True, text=True
+                )
+                if check.returncode == 0:
+                    # 기존 세션의 window를 split으로 가져올 순 없으므로, 새로 split
+                    pass
+
+            # 현재 pane 왼쪽에 split (-hb = horizontal, before)
+            # -l 50% = 절반 크기
+            cmd = f"cd '{wt_path}' && {binary} --print '{safe_prompt}'"
+            result = subprocess.run(
+                ["tmux", "split-window", "-hb", "-l", "50%", cmd],
+                capture_output=True, text=True,
+            )
+
+            if result.returncode == 0:
+                # split 성공 → 포커스는 자동으로 새 pane으로 감
+                # 새 pane ID 획득
+                pane_result = subprocess.run(
+                    ["tmux", "display-message", "-p", "#{pane_id}"],
+                    capture_output=True, text=True,
+                )
+                pane_id = pane_result.stdout.strip() if pane_result.returncode == 0 else ""
+                self._agent_pane_id = pane_id
+
+                # agent.yaml 갱신
+                pid_result = subprocess.run(
+                    ["tmux", "display-message", "-p", "#{pane_pid}"],
+                    capture_output=True, text=True,
+                )
+                try:
+                    pid = int(pid_result.stdout.strip())
+                except ValueError:
+                    pid = 0
+
+                from wt_board.models.agent import AgentSession, AgentStatus
+                agent = AgentSession(
+                    status=AgentStatus.ACTIVE,
+                    pid=pid,
+                    tmux_pane=pane_id,
+                    started_at=self.issue.updated_at,
+                    last_heartbeat=self.issue.updated_at,
+                )
+                self._agent = agent
+                self._store.write_agent(ticket, agent)
+                self._update_agent_status_widget()
+            else:
+                self._load_agent_status_only()
+
+        except Exception:
+            self._load_agent_status_only()
+
+    def _load_agent_status_only(self) -> None:
+        """tmux 없을 때 agent.yaml만 읽어서 상태 표시."""
+        try:
+            self._agent = self._store.read_agent(self.issue.ticket)
             self._update_agent_status_widget()
         except Exception:
-            # tmux 미설치 등 — 상태만 읽기
-            try:
-                self._agent = self._store.read_agent(self.issue.ticket)
-                self._update_agent_status_widget()
-            except Exception:
-                pass
+            pass
+
+    def _close_agent_pane(self) -> None:
+        """상세 화면 나갈 때 에이전트 split pane 정리."""
+        import subprocess
+        if hasattr(self, '_agent_pane_id') and self._agent_pane_id:
+            subprocess.run(
+                ["tmux", "kill-pane", "-t", self._agent_pane_id],
+                capture_output=True, text=True,
+            )
+            self._agent_pane_id = None
 
     def _update_agent_status_widget(self) -> None:
         """에이전트 상태 위젯 갱신."""
