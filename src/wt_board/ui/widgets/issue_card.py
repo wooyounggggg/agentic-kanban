@@ -30,16 +30,16 @@ class IssueCard(Static):
         height: auto;
         padding: 0 1;
         margin: 0 0 1 0;
-        border: tall #21262d;
-        background: #161b22;
+        border: tall #45475a;
+        background: #313244;
     }
     IssueCard:focus {
-        border: tall #58a6ff;
-        background: #0d419f;
+        border: tall #89b4fa;
+        background: #45475a;
     }
     IssueCard.selected {
-        border: tall #58a6ff;
-        background: #0d419f;
+        border: tall #89b4fa;
+        background: #45475a;
     }
     """
 
@@ -78,15 +78,15 @@ class IssueCard(Static):
         parts = []
         if self._pipeline_step:
             step_label = self._pipeline_step.capitalize()
-            parts.append(f"[on #30363d cyan] {step_label} [/]")
+            parts.append(f"[on #45475a cyan] {step_label} [/]")
         if self._status_label:
-            parts.append(f"[on #30363d] {self._status_label} [/]")
+            parts.append(f"[on #45475a] {self._status_label} [/]")
         if self.issue.assignee:
             parts.append(f"[dim]@{escape(self.issue.assignee)}[/]")
         if self.tc_progress:
             parts.append(f"[dim]{self.tc_progress} TC[/]")
         if self.issue.labels:
-            tags = " ".join(f"[on #30363d dim magenta] {escape(t)} [/]" for t in self.issue.labels[:3])
+            tags = " ".join(f"[on #45475a dim magenta] {escape(t)} [/]" for t in self.issue.labels[:3])
             parts.append(tags)
 
         line2 = ""

@@ -1,19 +1,19 @@
-/* board.tcss — Dark Kanban board layout */
+/* board.tcss — Catppuccin Mocha theme */
 
 /* --------------------------------------------------------------------------
    App-wide defaults
    -------------------------------------------------------------------------- */
 Screen {
-    background: #0d1117;
-    color: #c9d1d9;
+    background: #1e1e2e;
+    color: #cdd6f4;
 }
 
 /* --------------------------------------------------------------------------
    Header
    -------------------------------------------------------------------------- */
 Header {
-    background: #010409;
-    color: #58a6ff;
+    background: #11111b;
+    color: #89b4fa;
     text-style: bold;
     height: 1;
 }
@@ -22,8 +22,8 @@ Header {
    Footer
    -------------------------------------------------------------------------- */
 Footer {
-    background: #010409;
-    color: #8b949e;
+    background: #11111b;
+    color: #6c7086;
     height: 1;
 }
 
@@ -52,13 +52,13 @@ KanbanColumn {
     min-width: 22;
     height: 100%;
     margin: 0 1;
-    border: round #30363d;
+    border: round #45475a;
     overflow-y: auto;
 }
 
 KanbanColumn .col-header {
-    background: #161b22;
-    color: #79c0ff;
+    background: #313244;
+    color: #89b4fa;
     text-style: bold;
     padding: 0 1;
     text-align: center;
@@ -66,7 +66,7 @@ KanbanColumn .col-header {
 }
 
 KanbanColumn .col-empty {
-    color: #6e7681;
+    color: #6c7086;
     padding: 1;
     text-align: center;
     height: 3;
@@ -79,16 +79,16 @@ IssueCard {
     height: auto;
     padding: 0 1;
     margin: 1 1 0 1;
-    border: tall #21262d;
-    background: #161b22;
+    border: tall #45475a;
+    background: #313244;
 }
 
 IssueCard:focus {
-    border: tall #58a6ff;
-    background: #0d419f;
+    border: tall #89b4fa;
+    background: #45475a;
 }
 
 IssueCard.selected {
-    border: tall #58a6ff;
-    background: #0d419f;
+    border: tall #89b4fa;
+    background: #45475a;
 }

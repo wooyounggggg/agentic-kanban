@@ -17,50 +17,50 @@ class Sidebar(Vertical):
     Sidebar {
         width: 20;
         height: 100%;
-        background: #161b22;
-        border-right: solid #30363d;
+        background: #313244;
+        border-right: solid #45475a;
         padding: 1;
     }
     Sidebar.focused-mode {
-        border-right: solid #58a6ff;
+        border-right: solid #89b4fa;
     }
     Sidebar .sb-title {
-        color: #58a6ff;
+        color: #89b4fa;
         text-style: bold;
         padding: 0 0 1 0;
     }
     Sidebar .sb-section {
-        color: #6e7681;
+        color: #6c7086;
         text-style: italic;
         height: 1;
         margin-top: 1;
     }
     Sidebar .sb-section-active {
-        color: #58a6ff;
+        color: #89b4fa;
         text-style: bold;
         height: 1;
         margin-top: 1;
     }
     Sidebar .sb-item {
-        color: #6e7681;
+        color: #6c7086;
         padding-left: 1;
         height: 1;
     }
     Sidebar .sb-item-current {
-        color: #c9d1d9;
+        color: #cdd6f4;
         text-style: bold;
         padding-left: 1;
         height: 1;
     }
     Sidebar .sb-item-hover {
-        color: #58a6ff;
+        color: #89b4fa;
         text-style: bold;
         padding-left: 1;
         height: 1;
-        background: #0d419f;
+        background: #45475a;
     }
     Sidebar .sb-hint {
-        color: #6e7681;
+        color: #6c7086;
         margin-top: 1;
         height: auto;
     }

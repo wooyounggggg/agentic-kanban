@@ -37,7 +37,7 @@ class DetailScreen(Screen):
         Binding("space", "toggle_tc_item", "TC Toggle"),
         Binding("p", "toggle_plan", "Plan"),
         Binding("l", "toggle_worklog", "Worklog"),
-        Binding("d", "toggle_description", "Desc"),
+        Binding("t", "toggle_ticket", "Ticket"),
         Binding("c", "toggle_comments", "Comments"),
         Binding("f", "fetch_body", "Fetch"),
         Binding("up,k", "tc_up", "Up", show=False),
@@ -104,7 +104,7 @@ class DetailScreen(Screen):
 
         # TC Checklist
         panel.mount(Static(
-            f"[bold]TC[/] [dim]{self._checklist.progress_str}[/]",
+            f"[bold]TC[/] (Space) [dim]{self._checklist.progress_str}[/]",
             id="cl-section-header",
         ))
         self._checklist_widget = ChecklistWidget(
@@ -114,35 +114,35 @@ class DetailScreen(Screen):
         )
         panel.mount(self._checklist_widget)
 
-        # Plan (hidden by default)
-        panel.mount(Static("[bold]Plan[/]", id="plan-section-header"))
+        # Plan (open by default)
+        panel.mount(Static("[bold]Plan[/] (p)", id="plan-section-header"))
         plan_content = self._plan if self._plan else "m키로 Plan 단계를 실행하세요"
         self._plan_viewer = PlanViewer(plan_content, id="plan-viewer")
-        self._plan_viewer.display = False
+        self._plan_viewer.display = True
         panel.mount(self._plan_viewer)
 
-        # Worklog (hidden)
-        panel.mount(Static("[bold]Worklog[/]", id="worklog-section-header"))
+        # Worklog (open by default)
+        panel.mount(Static("[bold]Worklog[/] (l)", id="worklog-section-header"))
         self._worklog_widget = WorklogWidget(self._worklog, id="worklog-widget")
-        self._worklog_widget.display = False
+        self._worklog_widget.display = True
         panel.mount(self._worklog_widget)
 
-        # Ticket (hidden)
-        panel.mount(Static("[bold]Ticket[/]", id="desc-section-header"))
+        # Ticket (open by default)
+        panel.mount(Static("[bold]Ticket[/] (t)", id="desc-section-header"))
         self._description_viewer = PlanViewer(
             self._description or "f키로 Dooray에서 조회",
             id="description-viewer",
         )
-        self._description_viewer.display = False
+        self._description_viewer.display = True
         panel.mount(self._description_viewer)
 
-        # Comments (hidden)
-        panel.mount(Static("[bold]Comments[/]", id="comments-section-header"))
+        # Comments (open by default)
+        panel.mount(Static("[bold]Comments[/] (c)", id="comments-section-header"))
         self._comments_viewer = PlanViewer(
             self._comments or "f키로 Dooray에서 조회",
             id="comments-viewer",
         )
-        self._comments_viewer.display = False
+        self._comments_viewer.display = True
         panel.mount(self._comments_viewer)
 
     def _pipeline_bar(self) -> str:
@@ -271,7 +271,7 @@ class DetailScreen(Screen):
             if self._store:
                 self._store.write_checklist(self.issue.ticket, self._checklist)
             self.query_one("#cl-section-header", Static).update(
-                f"[bold]TC[/] [dim]{self._checklist.progress_str}[/]"
+                f"[bold]TC[/] (Space) [dim]{self._checklist.progress_str}[/]"
             )
         except AttributeError:
             pass
@@ -288,7 +288,7 @@ class DetailScreen(Screen):
         except AttributeError:
             pass
 
-    def action_toggle_description(self) -> None:
+    def action_toggle_ticket(self) -> None:
         try:
             self._description_viewer.display = not self._description_viewer.display
         except AttributeError:
@@ -318,18 +318,21 @@ class DetailScreen(Screen):
             self.issue = issue
             self._update_pipeline_header()
 
-            # 본문 + 댓글을 하나로 합쳐서 description 뷰어에 표시
-            combined = ""
+            # 본문은 description 뷰어에 표시
             if issue.description:
-                combined += issue.description
-            if comments:
-                combined += "\n\n---\n\n## 댓글\n\n" + comments
-
-            if combined:
-                self._description = combined
+                self._description = issue.description
                 try:
-                    self._description_viewer.update_content(combined)
+                    self._description_viewer.update_content(issue.description)
                     self._description_viewer.display = True
+                except AttributeError:
+                    pass
+
+            # 댓글은 comments 뷰어에 별도 표시
+            if comments:
+                self._comments = comments
+                try:
+                    self._comments_viewer.update_content(comments)
+                    self._comments_viewer.display = True
                 except AttributeError:
                     pass
 
