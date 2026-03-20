@@ -106,6 +106,7 @@ class PipelineService:
         try:
             issue = self._store.read_issue(ticket)
             issue.pipeline_step = next_step.name
+            issue.status = next_step.name  # Keep in sync
             issue.touch_updated()
             self._store.write_issue(ticket, issue)
         except Exception as exc:

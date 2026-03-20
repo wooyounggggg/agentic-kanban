@@ -33,11 +33,10 @@ class StatusDef:
 
 
 DEFAULT_STATUSES = [
-    StatusDef(name="planning", label="Planning", icon="\U0001f4dd"),
-    StatusDef(name="work", label="Work", icon="\U0001f528"),
-    StatusDef(name="review", label="Review", icon="\U0001f4cb"),
-    StatusDef(name="pr", label="PR", icon="\U0001f500"),
-    StatusDef(name="done", label="Done", icon="\u2705", terminal=True),
+    StatusDef(name="plan", label="Plan", icon=""),
+    StatusDef(name="implement", label="Implement", icon=""),
+    StatusDef(name="review", label="Review", icon=""),
+    StatusDef(name="completed", label="Completed", icon="", terminal=True),
 ]
 
 

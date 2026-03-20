@@ -18,11 +18,10 @@ from wt_board.models.config import BoardConfig
 
 
 _STATUS_COLOR = {
-    "planning": "yellow",
-    "work": "cyan",
+    "plan": "yellow",
+    "implement": "cyan",
     "review": "magenta",
-    "pr": "blue",
-    "done": "green",
+    "completed": "green",
 }
 
 
@@ -190,7 +189,7 @@ class DetailScreen(Screen):
 
     def _status_chip(self) -> str:
         """현재 상태를 chip으로 렌더링."""
-        status = self.issue.status
+        status = self.issue.pipeline_step or self.issue.status
         color = _STATUS_COLOR.get(status, "white")
         return f"[on {color} black] {status} [/]"
 

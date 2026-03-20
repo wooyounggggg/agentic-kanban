@@ -98,6 +98,7 @@ class IssueService:
             )
 
         issue.status = new_status
+        issue.pipeline_step = new_status  # Keep in sync
         issue.touch_updated()
         self._store.write_issue(ticket, issue)
         return issue

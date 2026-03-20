@@ -48,14 +48,13 @@ class BoardScreen(Screen):
         Binding("m", "move_card", "Move"),
         Binding("s", "sync", "Sync"),
         Binding("T", "theme", "Theme"),
-        Binding("h", "toggle_completed", "완료토글"),
+        Binding("v", "toggle_completed", "완료토글"),
         Binding("x", "delete_item", "Delete"),
         Binding("/", "search", "Search"),
-        Binding("left", "col_left", "Left", show=False),
-        Binding("right", "col_right", "Right", show=False),
+        Binding("left,h", "col_left", "Left", show=False),
+        Binding("right,l", "col_right", "Right", show=False),
         Binding("up,k", "card_up", "Up", show=False),
         Binding("down,j", "card_down", "Down", show=False),
-        Binding("escape", "exit_move_mode", "Exit", show=False),
     ]
 
     def _build_agent_service(self):
@@ -88,7 +87,6 @@ class BoardScreen(Screen):
     card_index: reactive[int] = reactive(0)
     _sidebar_focused: bool = False
     _sidebar_index: int = 0
-    _move_mode: bool = False
     _show_completed: bool = False
 
     def __init__(self, board_path: Optional[str] = None, **kwargs) -> None:
@@ -264,9 +262,6 @@ class BoardScreen(Screen):
         return start  # stay put if nothing found
 
     def action_col_left(self) -> None:
-        if self._move_mode:
-            self._move_issue_to_adjacent_status(-1)
-            return
         cols = self._columns()
         if not cols:
             return
@@ -280,9 +275,6 @@ class BoardScreen(Screen):
         self._highlight_current()
 
     def action_col_right(self) -> None:
-        if self._move_mode:
-            self._move_issue_to_adjacent_status(+1)
-            return
         if self._sidebar_focused:
             # 사이드바 → 보드로 복귀
             self._exit_sidebar()
@@ -546,64 +538,58 @@ class BoardScreen(Screen):
             self.notify(f"에이전트 오류: {exc}", severity="error")
 
     def action_move_card(self) -> None:
-        """m키 — 이동 모드 토글."""
-        if self._move_mode:
-            self._exit_move_mode()
-            return
+        """m키 — MoveDialog로 이슈 상태 변경."""
         issue = self._current_issue()
         if issue is None:
             self.notify("이슈를 선택해주세요.", severity="warning")
             return
-        self._move_mode = True
-        self.notify(
-            "이동 모드: ←→ 로 상태 변경, Esc 또는 m 취소",
-            severity="information",
+        # Build target list from config statuses (all except current)
+        targets = [s for s in self._statuses if s.name != issue.status]
+        if not targets:
+            self.notify("이동 가능한 상태가 없습니다.", severity="warning")
+            return
+
+        saved_ticket = issue.ticket  # Save for re-focus after move
+
+        from wt_board.ui.screens.create_dialog import MoveDialog
+
+        def on_result(new_status) -> None:
+            if new_status is None:
+                return
+            try:
+                from wt_board.services.issue_service import IssueService
+                svc = IssueService(self._store, self._config)
+                svc.move_issue(saved_ticket, new_status)
+                # Also sync pipeline_step to match status
+                issue_obj = self._store.read_issue(saved_ticket)
+                issue_obj.pipeline_step = new_status
+                self._store.write_issue(saved_ticket, issue_obj)
+
+                self._refresh_board()
+                # Re-focus the moved card
+                self._focus_ticket(saved_ticket)
+                self.notify(f"#{saved_ticket} → {new_status}", severity="information")
+            except Exception as exc:
+                self.notify(f"이동 실패: {exc}", severity="error")
+
+        self.app.push_screen(
+            MoveDialog(ticket=issue.ticket, current_status=issue.status, target_statuses=targets),
+            callback=on_result,
         )
 
-    def action_exit_move_mode(self) -> None:
-        """Esc — 이동 모드 종료."""
-        if self._move_mode:
-            self._exit_move_mode()
-
-    def _exit_move_mode(self) -> None:
-        self._move_mode = False
-        self.notify("이동 모드 종료.", severity="information")
-
-    def _move_issue_to_adjacent_status(self, direction: int) -> None:
-        """이동 모드에서 ←/→ 로 이슈를 인접 상태로 이동."""
-        issue = self._current_issue()
-        if issue is None:
-            return
-        if self._store is None:
-            self.notify("저장소가 연결되어 있지 않습니다.", severity="error")
-            return
-
-        status_names = [s.name for s in self._statuses]
-        try:
-            current_idx = status_names.index(issue.status)
-        except ValueError:
-            return
-
-        new_idx = current_idx + direction
-        if new_idx < 0 or new_idx >= len(status_names):
-            self.notify("더 이상 이동할 수 없습니다.", severity="warning")
-            return
-
-        new_status = status_names[new_idx]
-        try:
-            from wt_board.services.issue_service import IssueService
-            svc = IssueService(self._store, self._config)
-            svc.move_issue(issue.ticket, new_status)
-            self._refresh_board()
-            self.notify(
-                f"[cyan]#{issue.ticket}[/] → [bold]{new_status}[/]",
-                severity="information",
-            )
-        except Exception as exc:
-            self.notify(f"이동 실패: {exc}", severity="error")
+    def _focus_ticket(self, ticket: str) -> None:
+        """Move focus to a specific ticket after board refresh."""
+        cols = self._columns()
+        for col_idx, col in enumerate(cols):
+            for card_idx, issue in enumerate(col.issues):
+                if issue.ticket == ticket:
+                    self.col_index = col_idx
+                    self.card_index = card_idx
+                    self._highlight_current()
+                    return
 
     def action_toggle_completed(self) -> None:
-        """h키 — 완료(completed) 이슈 표시/숨기기 토글."""
+        """H키 — 완료(completed) 이슈 표시/숨기기 토글."""
         self._show_completed = not self._show_completed
         self._refresh_board()
         if self._show_completed:
