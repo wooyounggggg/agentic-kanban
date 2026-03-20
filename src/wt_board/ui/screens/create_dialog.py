@@ -609,6 +609,8 @@ class PlanPromptDialog(ModalScreen):
             yield Static("Plan 작성", classes="dialog-title")
             yield Static("Spec 프롬프트 (필수):", classes="dialog-label")
             yield TextArea(id="input-spec")
+            yield Static("참고 지식 (선택):", classes="dialog-label")
+            yield TextArea(id="input-context")
             yield Static("TC 프롬프트 (선택):", classes="dialog-label")
             yield TextArea(id="input-tc")
             with Horizontal(classes="btn-row"):
@@ -642,8 +644,9 @@ class PlanPromptDialog(ModalScreen):
         if not spec:
             self.notify("Spec 프롬프트를 입력해주세요.", severity="error")
             return
+        context = self.query_one("#input-context", TextArea).text.strip()
         tc = self.query_one("#input-tc", TextArea).text.strip()
-        self.dismiss({"spec": spec, "tc": tc})
+        self.dismiss({"spec": spec, "context": context, "tc": tc})
 
     def action_cancel(self) -> None:
         self.dismiss(None)

@@ -652,19 +652,15 @@ class BoardScreen(Screen):
                 if result is None:
                     return
                 spec = result["spec"]
+                context = result.get("context", "")
                 tc = result.get("tc", "")
-                prompt = (
-                    f"아래 요구사항을 기반으로 .board/issues/{ticket}/plan.md에 "
-                    f"구현 계획을 작성하세요.\n{spec}"
-                )
+                prompt = f"아래 요구사항을 기반으로 구현 계획을 마크다운으로 작성하세요.\n{spec}"
+                if context:
+                    prompt += f"\n\n참고 지식:\n{context}"
                 if tc:
-                    prompt += (
-                        f"\n\n테스트 케이스를 .board/issues/{ticket}/checklist.yaml에 "
-                        f"작성하세요.\n{tc}"
-                    )
-                prompt += f"\n\n작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
+                    prompt += f"\n\n테스트 케이스도 함께 작성하세요.\n{tc}"
                 if agent_svc:
-                    agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)
+                    agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done, save_as="plan.md")
                     self.notify(f"#{ticket} Plan 실행 중...", severity="information")
             self.app.push_screen(PlanPromptDialog(), callback=on_result)
 
