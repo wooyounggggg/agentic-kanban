@@ -197,11 +197,8 @@ class DetailScreen(Screen):
         from rich.markup import escape
         safe_title = escape(self.issue.title)
         chip = self._status_chip()
-        pipeline = self._pipeline_bar()
-        # 1줄: 티켓번호 + 상태 chip + 제목
-        # 2줄: 파이프라인 진행 바
         line1 = f"[bold cyan]#{self.issue.ticket}[/]  {chip}  {safe_title}"
-        line2 = pipeline if pipeline else ""
+        line2 = ""
         markup = f"{line1}\n{line2}" if line2 else line1
         try:
             self.query_one("#detail-header", Static).update(markup)
