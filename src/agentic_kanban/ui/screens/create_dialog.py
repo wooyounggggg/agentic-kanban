@@ -596,10 +596,7 @@ class PlanPromptDialog(ModalScreen):
         color: #6e7681;
     }}
     PlanPromptDialog TextArea {{
-        height: auto;
-        min-height: 3;
-        max-height: 12;
-        overflow: hidden hidden;
+        height: 3;
     }}
     PlanPromptDialog .btn-row {{
         margin-top: 1;
@@ -749,10 +746,7 @@ class ReviewPromptDialog(ModalScreen):
         margin-top: 1;
     }}
     ReviewPromptDialog TextArea {{
-        height: auto;
-        min-height: 3;
-        max-height: 12;
-        overflow: hidden hidden;
+        height: 3;
     }}
     ReviewPromptDialog .btn-row {{
         margin-top: 1;
