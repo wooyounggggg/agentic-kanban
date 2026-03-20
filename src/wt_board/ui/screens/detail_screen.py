@@ -256,7 +256,7 @@ class DetailScreen(Screen):
             context = result.get("context", "")
             tc = result.get("tc", "")
             ticket = self.issue.ticket
-            prompt = f"아래 요구사항을 기반으로 구현 계획을 마크다운으로 작성하세요.\n{spec}"
+            prompt = f"아래 요구사항을 기반으로 .board/issues/{ticket}/plan.md에 구현 계획을 작성하세요.\n{spec}"
             if context:
                 prompt += f"\n\n참고 지식:\n{context}"
             if tc:
@@ -265,7 +265,7 @@ class DetailScreen(Screen):
                 def _on_agent_done(t, output):
                     self.app.call_from_thread(self._on_agent_complete, t)
 
-                self._agent_service.run_prompt(ticket, prompt, on_complete=_on_agent_done, save_as="plan.md")
+                self._agent_service.run_prompt(ticket, prompt, on_complete=_on_agent_done)
                 self.notify("Plan 작성을 시작합니다.", severity="information")
 
         self.app.push_screen(PlanPromptDialog(), callback=on_result)

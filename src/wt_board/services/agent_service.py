@@ -25,7 +25,6 @@ class AgentService:
         ticket: str,
         prompt: str,
         on_complete: Optional[Callable[[str, str], None]] = None,
-        save_as: str = "",
     ) -> bool:
         """Run claude --print with prompt in background.
 
@@ -52,12 +51,6 @@ class AgentService:
                     timeout=600,  # 10 min timeout
                 )
                 output = result.stdout.strip()
-
-                # save_as가 지정되면 출력을 해당 파일에 저장
-                if save_as and output:
-                    save_path = self._store.issue_dir(ticket) / save_as
-                    save_path.parent.mkdir(parents=True, exist_ok=True)
-                    save_path.write_text(output, encoding="utf-8")
 
                 self._save_worklog(ticket, prompt, output)
 
