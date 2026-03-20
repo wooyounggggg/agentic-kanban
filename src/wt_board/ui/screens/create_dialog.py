@@ -608,11 +608,16 @@ class PlanPromptDialog(ModalScreen):
             yield Static("TC 프롬프트 (선택):", classes="dialog-label")
             yield Input(placeholder="테스트 케이스 요구사항 (비워두면 생략)", id="input-tc")
             with Horizontal(classes="btn-row"):
-                yield Button("실행", variant="primary", id="btn-submit")
+                yield Button("실행", variant="primary", id="btn-submit", disabled=True)
                 yield Button("취소", variant="default", id="btn-cancel")
 
     def on_mount(self) -> None:
         self.query_one("#input-spec", Input).focus()
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "input-spec":
+            btn = self.query_one("#btn-submit", Button)
+            btn.disabled = not event.value.strip()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
@@ -742,11 +747,16 @@ class ReviewPromptDialog(ModalScreen):
             yield Static("수정 프롬프트:", classes="dialog-label")
             yield Input(placeholder="수정할 내용을 설명하세요", id="input-review")
             with Horizontal(classes="btn-row"):
-                yield Button("실행", variant="primary", id="btn-submit")
+                yield Button("실행", variant="primary", id="btn-submit", disabled=True)
                 yield Button("취소", variant="default", id="btn-cancel")
 
     def on_mount(self) -> None:
         self.query_one("#input-review", Input).focus()
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "input-review":
+            btn = self.query_one("#btn-submit", Button)
+            btn.disabled = not event.value.strip()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
