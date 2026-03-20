@@ -581,6 +581,7 @@ class PlanPromptDialog(ModalScreen):
         {_DIALOG_CSS}
         width: 72;
         height: auto;
+        max-height: 80%;
     }}
     PlanPromptDialog .dialog-title {{
         color: #58a6ff;
@@ -595,8 +596,8 @@ class PlanPromptDialog(ModalScreen):
         color: #6e7681;
     }}
     PlanPromptDialog TextArea {{
-        min-height: 3;
-        max-height: 8;
+        height: 4;
+        max-height: 10;
     }}
     PlanPromptDialog .btn-row {{
         margin-top: 1;
@@ -726,6 +727,7 @@ class ReviewPromptDialog(ModalScreen):
         {_DIALOG_CSS}
         width: 72;
         height: auto;
+        max-height: 80%;
     }}
     ReviewPromptDialog .dialog-title {{
         color: #58a6ff;
@@ -737,8 +739,8 @@ class ReviewPromptDialog(ModalScreen):
         margin-top: 1;
     }}
     ReviewPromptDialog TextArea {{
-        min-height: 3;
-        max-height: 8;
+        height: 4;
+        max-height: 10;
     }}
     ReviewPromptDialog .btn-row {{
         margin-top: 1;
