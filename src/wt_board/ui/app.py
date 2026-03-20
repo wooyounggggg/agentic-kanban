@@ -70,7 +70,7 @@ class WtBoardApp(App):
             pass
 
     def _auto_sync(self) -> None:
-        """Silently sync all issues in the background. Only notifies on error."""
+        """워커 스레드에서 동기화 후 메인 스레드에서 보드 갱신."""
         try:
             screen = self.screen
             from wt_board.ui.screens.board_screen import BoardScreen
@@ -79,10 +79,19 @@ class WtBoardApp(App):
             sync_service = screen._get_sync_service()
             if sync_service is None:
                 return
-            sync_service.sync_all_light()
-            screen._refresh_board()
-        except Exception as exc:
-            self.notify(f"자동 동기화 실패: {exc}", severity="error")
+
+            import threading
+
+            def _sync_worker():
+                try:
+                    sync_service.sync_all_light()
+                    self.call_from_thread(screen._refresh_board)
+                except Exception:
+                    pass
+
+            threading.Thread(target=_sync_worker, daemon=True).start()
+        except Exception:
+            pass
 
     def action_request_quit(self) -> None:
         """q 한 번 → 안내, 빠르게 두 번 → 종료."""
