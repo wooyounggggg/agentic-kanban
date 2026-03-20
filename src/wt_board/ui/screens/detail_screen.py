@@ -100,12 +100,20 @@ class DetailScreen(Screen):
     def _populate_panel(self) -> None:
         from wt_board.ui.widgets.checklist_widget import ChecklistWidget
         from wt_board.ui.widgets.plan_viewer import PlanViewer
-        from wt_board.ui.widgets.worklog_widget import WorklogWidget
 
         try:
             panel = self.query_one("#detail-panel")
         except Exception:
             return
+
+        # 순서: Plan → TC → Ticket → Comments → Worklog
+
+        # Plan (open by default)
+        panel.mount(Static("[bold]Plan[/] (p)", id="plan-section-header"))
+        plan_content = self._plan if self._plan else "m키로 Plan 단계를 실행하세요"
+        self._plan_viewer = PlanViewer(plan_content, id="plan-viewer")
+        self._plan_viewer.display = True
+        panel.mount(self._plan_viewer)
 
         # TC Checklist
         panel.mount(Static(
@@ -117,19 +125,6 @@ class DetailScreen(Screen):
             id="checklist-widget",
         )
         panel.mount(self._checklist_widget)
-
-        # Plan (open by default)
-        panel.mount(Static("[bold]Plan[/] (p)", id="plan-section-header"))
-        plan_content = self._plan if self._plan else "m키로 Plan 단계를 실행하세요"
-        self._plan_viewer = PlanViewer(plan_content, id="plan-viewer")
-        self._plan_viewer.display = True
-        panel.mount(self._plan_viewer)
-
-        # Worklog (open by default)
-        panel.mount(Static("[bold]Worklog[/] (l)", id="worklog-section-header"))
-        self._worklog_widget = WorklogWidget(self._worklog, id="worklog-widget")
-        self._worklog_widget.display = True
-        panel.mount(self._worklog_widget)
 
         # Ticket (open by default)
         panel.mount(Static("[bold]Ticket[/] (t)", id="desc-section-header"))
@@ -150,6 +145,32 @@ class DetailScreen(Screen):
         )
         self._comments_viewer.display = True
         panel.mount(self._comments_viewer)
+
+        # Worklog (하단, PlanViewer로 렌더링)
+        panel.mount(Static("[bold]Worklog[/] (l)", id="worklog-section-header"))
+        worklog_md = self._build_worklog_markdown()
+        self._worklog_viewer = PlanViewer(
+            worklog_md or "작업 기록이 없습니다.",
+            id="worklog-viewer",
+        )
+        self._worklog_viewer.display = True
+        panel.mount(self._worklog_viewer)
+
+    def _build_worklog_markdown(self) -> str:
+        """Worklog 항목을 마크다운으로 변환."""
+        if not self._worklog:
+            return ""
+        from wt_board.utils import format_short_date
+        parts = []
+        for entry in reversed(self._worklog):  # 최신 먼저
+            at = format_short_date(entry.at) if entry.at else ""
+            author = entry.author or "unknown"
+            body = entry.work_done or "(내용 없음)"
+            section = f"### {at}  ({author})\n\n{body}"
+            if entry.next_action:
+                section += f"\n\n> → {entry.next_action}"
+            parts.append(section)
+        return "\n\n---\n\n".join(parts)
 
     def _pipeline_bar(self) -> str:
         if self._pipeline_service is None:
@@ -267,7 +288,7 @@ class DetailScreen(Screen):
 
     def action_toggle_worklog(self) -> None:
         try:
-            self._worklog_widget.display = not self._worklog_widget.display
+            self._worklog_viewer.display = not self._worklog_viewer.display
         except AttributeError:
             pass
 
