@@ -180,7 +180,7 @@ class DetailScreen(Screen):
         parts = []
         for step, status in steps:
             if status == "done":
-                parts.append(f"[on green black] {step.label} ✓ [/]")
+                parts.append(f"[on green black] {step.label} ✅ [/]")
             elif status == "active":
                 parts.append(f"[on cyan black] {step.label} ● [/]")
             else:
