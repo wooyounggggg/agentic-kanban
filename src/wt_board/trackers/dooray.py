@@ -276,7 +276,7 @@ class DoorayTracker(TrackerPlugin):
             content = content.strip()
 
             if content:
-                parts.append(f"### {author} ({date})\n{content}\n---")
+                parts.append(f"**{author}** · {date}\n\n{content}")
 
         if not parts:
             return None

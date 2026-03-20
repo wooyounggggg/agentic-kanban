@@ -164,7 +164,7 @@ class DetailScreen(Screen):
         for entry in reversed(self._worklog):  # 최신 먼저
             at = format_short_date(entry.at) if entry.at else ""
             body = entry.work_done or "(내용 없음)"
-            section = f"### {at}\n\n{body}"
+            section = f"**{at}**\n\n{body}"
             if entry.next_action:
                 section += f"\n\n> → {entry.next_action}"
             parts.append(section)
