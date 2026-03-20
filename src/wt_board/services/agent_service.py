@@ -43,10 +43,11 @@ class AgentService:
         log_file = open(log_path, "w", encoding="utf-8")
 
         proc = subprocess.Popen(
-            [binary, "--print", "--dangerously-skip-permissions", prompt],
+            [binary, "--print", "--dangerously-skip-permissions",
+             "--output-format", "stream-json", prompt],
             cwd=wt_path,
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
         )
 
@@ -59,9 +60,39 @@ class AgentService:
 
         def _worker():
             try:
-                proc.wait(timeout=600)
+                import json as _json
+                result_text = []
+                for line in proc.stdout:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    # stream-json: 각 줄이 JSON 객체
+                    try:
+                        obj = _json.loads(line)
+                        msg_type = obj.get("type", "")
+                        if msg_type == "assistant":
+                            # 텍스트 응답
+                            content = obj.get("message", {}).get("content", [])
+                            for block in content:
+                                if block.get("type") == "text":
+                                    text = block.get("text", "")
+                                    result_text.append(text)
+                                    log_file.write(text + "\n")
+                                    log_file.flush()
+                        elif msg_type == "result":
+                            # 최종 결과
+                            result_content = obj.get("result", "")
+                            if result_content:
+                                result_text.append(result_content)
+                                log_file.write(result_content + "\n")
+                                log_file.flush()
+                    except _json.JSONDecodeError:
+                        log_file.write(line + "\n")
+                        log_file.flush()
+
+                proc.wait()
                 log_file.close()
-                output = log_path.read_text(encoding="utf-8").strip()
+                output = "\n".join(result_text).strip()
 
                 self._save_worklog(ticket, prompt, output)
 
