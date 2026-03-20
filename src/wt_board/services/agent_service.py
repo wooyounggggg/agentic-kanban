@@ -41,23 +41,25 @@ class AgentService:
         # stdout을 실시간 로그 파일에 기록
         log_path = self._store.issue_dir(ticket) / "agent.log"
         log_file = open(log_path, "w", encoding="utf-8")
+        # 프롬프트를 로그 상단에 기록
+        log_file.write(f"**프롬프트:**\n{prompt}\n\n---\n\n")
+        log_file.flush()
 
-        # macOS: script -q로 PTY 에뮬레이션 (파이프 버퍼링 우회)
-        import platform
+        # PTY로 실시간 stdout (파이프 버퍼링 우회)
+        import pty
+        master_fd, slave_fd = pty.openpty()
+
         cmd = [binary, "--print", "--dangerously-skip-permissions",
                "--verbose", "--output-format", "stream-json", prompt]
-        if platform.system() == "Darwin":
-            # script -q /dev/null 로 unbuffered stdout
-            cmd = ["script", "-q", "/dev/null"] + cmd
 
         proc = subprocess.Popen(
             cmd,
             cwd=wt_path,
-            stdout=subprocess.PIPE,
+            stdout=slave_fd,
             stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
+            text=False,
         )
+        os.close(slave_fd)  # 부모는 slave 닫음
 
         agent = AgentSession(
             status=AgentStatus.ACTIVE,
@@ -69,35 +71,52 @@ class AgentService:
         def _worker():
             try:
                 import json as _json
+                import select
                 output_parts = []
-                for line in proc.stdout:
-                    line = line.strip()
-                    if not line:
-                        continue
+                buf = b""
+
+                while True:
+                    # master_fd에서 읽기 (프로세스 종료 시 EOF)
                     try:
-                        obj = _json.loads(line)
-                        msg_type = obj.get("type", "")
+                        ready, _, _ = select.select([master_fd], [], [], 1.0)
+                        if ready:
+                            chunk = os.read(master_fd, 4096)
+                            if not chunk:
+                                break
+                            buf += chunk
+                            # 줄 단위 파싱
+                            while b"\n" in buf:
+                                line_bytes, buf = buf.split(b"\n", 1)
+                                line = line_bytes.decode("utf-8", errors="replace").strip()
+                                if not line:
+                                    continue
+                                try:
+                                    obj = _json.loads(line)
+                                    msg_type = obj.get("type", "")
+                                    if msg_type == "assistant":
+                                        content = obj.get("message", {}).get("content", [])
+                                        for block in content:
+                                            if block.get("type") == "text":
+                                                text = block.get("text", "")
+                                                if text:
+                                                    output_parts.append(text)
+                                                    log_file.write(text)
+                                                    log_file.flush()
+                                    elif msg_type == "result":
+                                        result_text = obj.get("result", "")
+                                        if result_text:
+                                            output_parts.append(result_text)
+                                            log_file.write(result_text)
+                                            log_file.flush()
+                                except _json.JSONDecodeError:
+                                    continue
+                        # 프로세스 종료 확인
+                        if proc.poll() is not None and not ready:
+                            break
+                    except OSError:
+                        break
 
-                        if msg_type == "assistant":
-                            content = obj.get("message", {}).get("content", [])
-                            for block in content:
-                                if block.get("type") == "text":
-                                    text = block.get("text", "")
-                                    if text:
-                                        output_parts.append(text)
-                                        log_file.write(text)
-                                        log_file.flush()
-
-                        elif msg_type == "result":
-                            result_text = obj.get("result", "")
-                            if result_text and result_text not in "".join(output_parts):
-                                output_parts.append(result_text)
-                                log_file.write(result_text)
-                                log_file.flush()
-
-                    except _json.JSONDecodeError:
-                        continue
-
+                os.close(master_fd)
                 proc.wait()
                 log_file.close()
                 output = "\n".join(output_parts).strip()

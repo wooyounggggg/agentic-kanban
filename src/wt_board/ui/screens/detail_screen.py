@@ -77,7 +77,7 @@ class DetailScreen(Screen):
         self._load_issue_data()
         self._populate_panel()
         self._update_pipeline_header()
-        self._agent_refresh_timer = self.set_interval(3, self._refresh_agent_viewer)
+        self._agent_refresh_timer = self.set_interval(1, self._refresh_agent_viewer)
 
     def _load_issue_data(self) -> None:
         if self._store is None:
