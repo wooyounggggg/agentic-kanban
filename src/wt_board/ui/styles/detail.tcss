@@ -8,10 +8,10 @@
 }
 
 #detail-header {
-    color: #c9d1d9;
+    color: #eceff4;
     height: auto;
     margin-bottom: 1;
-    border-bottom: solid #30363d;
+    border-bottom: solid #4c566a;
     padding-bottom: 1;
 }
 
@@ -21,7 +21,7 @@
 #worklog-section-header,
 #desc-section-header,
 #comments-section-header {
-    color: #58a6ff;
+    color: #88c0d0;
     text-style: bold;
     height: 1;
     margin-top: 1;
@@ -40,11 +40,11 @@ ChecklistWidget .cl-item {
 }
 
 ChecklistWidget .cl-item.cl-selected {
-    background: #21262d;
+    background: #434c5e;
 }
 
 ChecklistWidget .cl-item.cl-done {
-    color: #6e7681;
+    color: #4c566a;
 }
 
 /* Plan / Description / Comments viewer */
@@ -53,7 +53,7 @@ PlanViewer {
     max-height: 24;
     overflow-y: auto;
     padding: 0 1;
-    border: round #30363d;
+    border: round #4c566a;
     text-align: left;
 }
 
@@ -102,13 +102,13 @@ WorklogWidget {
 }
 
 WorklogWidget .wl-entry {
-    border-bottom: dashed #161b22;
+    border-bottom: dashed #3b4252;
     padding-bottom: 1;
     margin-bottom: 1;
     height: auto;
 }
 
 WorklogWidget .wl-empty {
-    color: #6e7681;
+    color: #4c566a;
     padding: 1;
 }

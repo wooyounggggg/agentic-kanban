@@ -4,16 +4,16 @@
    App-wide defaults
    -------------------------------------------------------------------------- */
 Screen {
-    background: #0d1117;
-    color: #c9d1d9;
+    background: #2e3440;
+    color: #eceff4;
 }
 
 /* --------------------------------------------------------------------------
    Header
    -------------------------------------------------------------------------- */
 Header {
-    background: #010409;
-    color: #79c0ff;
+    background: #242933;
+    color: #8fbcbb;
     text-style: bold;
     height: 1;
 }
@@ -22,8 +22,8 @@ Header {
    Footer
    -------------------------------------------------------------------------- */
 Footer {
-    background: #010409;
-    color: #6e7681;
+    background: #242933;
+    color: #4c566a;
     height: 1;
 }
 
@@ -39,41 +39,41 @@ Footer {
    Sidebar
    -------------------------------------------------------------------------- */
 Sidebar {
-    background: #161b22;
-    border-right: solid #30363d;
+    background: #3b4252;
+    border-right: solid #4c566a;
 }
 
 Sidebar.focused-mode {
-    border-right: solid #58a6ff;
+    border-right: solid #88c0d0;
 }
 
 Sidebar .sb-title {
-    color: #58a6ff;
+    color: #88c0d0;
 }
 
 Sidebar .sb-section {
-    color: #6e7681;
+    color: #4c566a;
 }
 
 Sidebar .sb-section-active {
-    color: #58a6ff;
+    color: #88c0d0;
 }
 
 Sidebar .sb-item {
-    color: #6e7681;
+    color: #4c566a;
 }
 
 Sidebar .sb-item-current {
-    color: #c9d1d9;
+    color: #eceff4;
 }
 
 Sidebar .sb-item-hover {
-    color: #58a6ff;
-    background: #21262d;
+    color: #88c0d0;
+    background: #434c5e;
 }
 
 Sidebar .sb-hint {
-    color: #6e7681;
+    color: #4c566a;
 }
 
 /* --------------------------------------------------------------------------
@@ -91,13 +91,13 @@ KanbanColumn {
     min-width: 22;
     height: 100%;
     margin: 0 1;
-    border: round #30363d;
+    border: round #4c566a;
     overflow-y: auto;
 }
 
 KanbanColumn .col-header {
-    background: #161b22;
-    color: #79c0ff;
+    background: #3b4252;
+    color: #8fbcbb;
     text-style: bold;
     padding: 0 1;
     text-align: center;
@@ -105,7 +105,7 @@ KanbanColumn .col-header {
 }
 
 KanbanColumn .col-empty {
-    color: #6e7681;
+    color: #4c566a;
     padding: 1;
     text-align: center;
     height: 3;
@@ -118,16 +118,16 @@ IssueCard {
     height: auto;
     padding: 0 1;
     margin: 1 1 0 1;
-    border: tall #30363d;
-    background: #161b22;
+    border: tall #4c566a;
+    background: #3b4252;
 }
 
 IssueCard:focus {
-    border: tall #58a6ff;
-    background: #21262d;
+    border: tall #88c0d0;
+    background: #434c5e;
 }
 
 IssueCard.selected {
-    border: tall #58a6ff;
-    background: #21262d;
+    border: tall #88c0d0;
+    background: #434c5e;
 }
