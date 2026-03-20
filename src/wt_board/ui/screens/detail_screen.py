@@ -265,6 +265,9 @@ class DetailScreen(Screen):
                     f"\n\n테스트 케이스를 .board/issues/{ticket}/checklist.yaml에 "
                     f"작성하세요.\n{tc}"
                 )
+            prompt += (
+                f"\n\n작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
+            )
             if self._agent_service:
                 self._agent_service.resume_agent(ticket)
                 self._agent_service.send_command(ticket, prompt)
