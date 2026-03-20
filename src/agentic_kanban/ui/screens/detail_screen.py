@@ -34,6 +34,7 @@ class DetailScreen(Screen):
         Binding("m", "move_status", "상태이동"),
         Binding("space", "toggle_tc_item", "TC"),
         Binding("p", "toggle_plan", "Plan"),
+        Binding("P", "expand_plan", "Plan 확대", show=False),
         Binding("l", "toggle_worklog", "Log"),
         Binding("t", "toggle_ticket", "Ticket"),
         Binding("c", "toggle_comments", "Comments"),
@@ -414,29 +415,36 @@ class DetailScreen(Screen):
     _plan_expanded: bool = False
 
     def action_toggle_plan(self) -> None:
-        """p키 — Plan 확대/축소. 확대 시 다른 섹션 숨기고 Plan만 크게."""
+        """p — Plan 보이기/숨기기."""
+        try:
+            self._plan_viewer.display = not self._plan_viewer.display
+        except AttributeError:
+            pass
+
+    def action_expand_plan(self) -> None:
+        """P — Plan 전체화면 확대/축소."""
         self._plan_expanded = not self._plan_expanded
         try:
             if self._plan_expanded:
-                # Plan 확대 — 다른 섹션 숨기기
-                self._plan_viewer.styles.max_height = None  # 제한 해제
-                for viewer_name in ("_agent_viewer", "_checklist_widget", "_description_viewer", "_comments_viewer", "_worklog_viewer"):
-                    viewer = getattr(self, viewer_name, None)
-                    if viewer:
-                        viewer.display = False
-                # 섹션 헤더도 숨기기
+                self._plan_viewer.display = True
+                self._plan_viewer.styles.max_height = None
+                self._plan_viewer.styles.height = "1fr"
+                for name in ("_agent_viewer", "_checklist_widget", "_description_viewer", "_comments_viewer", "_worklog_viewer"):
+                    v = getattr(self, name, None)
+                    if v:
+                        v.display = False
                 for hid in ("agent-section-header", "cl-section-header", "desc-section-header", "comments-section-header", "worklog-section-header"):
                     try:
                         self.query_one(f"#{hid}").display = False
                     except Exception:
                         pass
             else:
-                # Plan 축소 — 모든 섹션 복원
                 self._plan_viewer.styles.max_height = 24
-                for viewer_name in ("_agent_viewer", "_checklist_widget", "_description_viewer", "_comments_viewer", "_worklog_viewer"):
-                    viewer = getattr(self, viewer_name, None)
-                    if viewer:
-                        viewer.display = True
+                self._plan_viewer.styles.height = "auto"
+                for name in ("_agent_viewer", "_checklist_widget", "_description_viewer", "_comments_viewer", "_worklog_viewer"):
+                    v = getattr(self, name, None)
+                    if v:
+                        v.display = True
                 for hid in ("agent-section-header", "cl-section-header", "desc-section-header", "comments-section-header", "worklog-section-header"):
                     try:
                         self.query_one(f"#{hid}").display = True
