@@ -43,12 +43,13 @@ class AgentService:
         log_file = open(log_path, "w", encoding="utf-8")
 
         proc = subprocess.Popen(
-            [binary, "--print", "--dangerously-skip-permissions", prompt],
+            [binary, "--print", "--dangerously-skip-permissions",
+             "--verbose", "--output-format", "stream-json", prompt],
             cwd=wt_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1,  # line-buffered
+            bufsize=1,
         )
 
         agent = AgentSession(
@@ -60,16 +61,39 @@ class AgentService:
 
         def _worker():
             try:
-                # stdout을 한 줄씩 읽어서 로그에 기록
-                output_lines = []
+                import json as _json
+                output_parts = []
                 for line in proc.stdout:
-                    log_file.write(line)
-                    log_file.flush()
-                    output_lines.append(line)
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        obj = _json.loads(line)
+                        msg_type = obj.get("type", "")
+
+                        if msg_type == "assistant":
+                            content = obj.get("message", {}).get("content", [])
+                            for block in content:
+                                if block.get("type") == "text":
+                                    text = block.get("text", "")
+                                    if text:
+                                        output_parts.append(text)
+                                        log_file.write(text)
+                                        log_file.flush()
+
+                        elif msg_type == "result":
+                            result_text = obj.get("result", "")
+                            if result_text and result_text not in "".join(output_parts):
+                                output_parts.append(result_text)
+                                log_file.write(result_text)
+                                log_file.flush()
+
+                    except _json.JSONDecodeError:
+                        continue
 
                 proc.wait()
                 log_file.close()
-                output = "".join(output_lines).strip()
+                output = "\n".join(output_parts).strip()
 
                 self._save_worklog(ticket, prompt, output)
 

@@ -37,7 +37,7 @@ class DetailScreen(Screen):
         Binding("l", "toggle_worklog", "Log"),
         Binding("t", "toggle_ticket", "Ticket"),
         Binding("c", "toggle_comments", "Comments"),
-        Binding("a", "agent_status", "Agent"),
+        Binding("a", "toggle_agent", "Agent"),
         Binding("f", "fetch_body", "Fetch"),
         Binding("up,k", "tc_up", "Up", show=False),
         Binding("down,j", "tc_down", "Down", show=False),
@@ -77,6 +77,7 @@ class DetailScreen(Screen):
         self._load_issue_data()
         self._populate_panel()
         self._update_pipeline_header()
+        self._agent_refresh_timer = self.set_interval(3, self._refresh_agent_viewer)
 
     def _load_issue_data(self) -> None:
         if self._store is None:
@@ -105,7 +106,17 @@ class DetailScreen(Screen):
         except Exception:
             return
 
-        # 순서: Plan → TC → Ticket → Comments → Worklog
+        # 순서: Agent → Plan → TC → Ticket → Comments → Worklog
+
+        # Agent log (live)
+        panel.mount(Static("[bold]Agent[/] (a)", id="agent-section-header"))
+        agent_log = self._read_agent_log()
+        self._agent_viewer = PlanViewer(
+            agent_log or "에이전트가 실행되지 않았습니다.",
+            id="agent-viewer",
+        )
+        self._agent_viewer.display = True  # visible by default
+        panel.mount(self._agent_viewer)
 
         # Plan (open by default)
         panel.mount(Static("[bold]Plan[/] (p)", id="plan-section-header"))
@@ -169,6 +180,21 @@ class DetailScreen(Screen):
                 section += f"\n\n> → {entry.next_action}"
             parts.append(section)
         return "\n\n---\n\n".join(parts)
+
+    def _read_agent_log(self) -> str:
+        if not self._store:
+            return ""
+        log_path = self._store.issue_dir(self.issue.ticket) / "agent.log"
+        if not log_path.exists():
+            return ""
+        try:
+            content = log_path.read_text(encoding="utf-8").strip()
+            # Limit to last 2000 chars to keep UI responsive
+            if len(content) > 2000:
+                content = "...\n" + content[-2000:]
+            return content
+        except Exception:
+            return ""
 
     def _pipeline_bar(self) -> str:
         if self._pipeline_service is None:
@@ -337,29 +363,37 @@ class DetailScreen(Screen):
                 self._plan_viewer.update_content(plan)
         except Exception:
             pass
+        try:
+            log = self._read_agent_log()
+            if log and hasattr(self, "_agent_viewer"):
+                self._agent_viewer.update_content(log)
+        except Exception:
+            pass
         self._update_pipeline_header()
         self.notify(f"#{ticket} 에이전트 작업 완료.", severity="information")
 
-    def action_agent_status(self) -> None:
-        """a키 — 에이전트 상태 + 실시간 로그 확인."""
-        if not self._agent_service:
-            self.notify("에이전트 서비스 없음.", severity="warning")
+    def action_toggle_agent(self) -> None:
+        try:
+            # Refresh content from log file
+            log = self._read_agent_log()
+            if log:
+                self._agent_viewer.update_content(log)
+            self._agent_viewer.display = not self._agent_viewer.display
+        except AttributeError:
+            pass
+
+    def _refresh_agent_viewer(self) -> None:
+        """Auto-refresh agent log viewer while agent is running."""
+        if not self._agent_service or not self._store:
             return
-        status = self._agent_service.get_status_text(self.issue.ticket)
-        # agent.log 마지막 몇 줄 표시
-        log_path = self._store.issue_dir(self.issue.ticket) / "agent.log" if self._store else None
-        log_preview = ""
-        if log_path and log_path.exists():
-            try:
-                lines = log_path.read_text(encoding="utf-8").strip().split("\n")
-                last_lines = lines[-3:] if len(lines) > 3 else lines
-                log_preview = "\n".join(last_lines)
-            except Exception:
-                pass
-        msg = f"에이전트: {status}"
-        if log_preview:
-            msg += f"\n\n최근 출력:\n{log_preview}"
-        self.notify(msg, severity="information", timeout=5)
+        try:
+            if not self._agent_service.is_running(self.issue.ticket):
+                return
+            log = self._read_agent_log()
+            if log and hasattr(self, "_agent_viewer"):
+                self._agent_viewer.update_content(log)
+        except Exception:
+            pass
 
     def action_toggle_plan(self) -> None:
         try:
