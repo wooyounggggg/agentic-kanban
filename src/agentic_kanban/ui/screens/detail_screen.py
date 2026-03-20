@@ -33,13 +33,17 @@ class DetailScreen(Screen):
         Binding("r", "run_pipeline", "실행"),
         Binding("m", "move_status", "상태이동"),
         Binding("space", "toggle_tc_item", "TC"),
+        Binding("a", "toggle_agent", "Agent"),
         Binding("p", "toggle_plan", "Plan"),
-        Binding("P", "expand_plan", "Plan확대"),
-        Binding("l", "toggle_worklog", "Log"),
         Binding("t", "toggle_ticket", "Ticket"),
         Binding("c", "toggle_comments", "Comments"),
-        Binding("a", "toggle_agent", "Agent"),
+        Binding("l", "toggle_worklog", "Log"),
         Binding("f", "fetch_body", "Fetch"),
+        Binding("A", "expand_section('agent')", show=False),
+        Binding("P", "expand_section('plan')", show=False),
+        Binding("T", "expand_section('ticket')", show=False),
+        Binding("C", "expand_section('comments')", show=False),
+        Binding("L", "expand_section('worklog')", show=False),
         Binding("up,k", "tc_up", "Up", show=False),
         Binding("down,j", "tc_down", "Down", show=False),
     ]
@@ -113,7 +117,7 @@ class DetailScreen(Screen):
         agent_status = ""
         if self._agent_service and self._agent_service.is_running(self.issue.ticket):
             agent_status = " [bold #8fac6e]⟳ 작업중...[/]"
-        panel.mount(Static(f"[bold]Agent[/] (a){agent_status}", id="agent-section-header"))
+        panel.mount(Static(f"[bold]Agent[/] (a) [dim]A:확대[/]{agent_status}", id="agent-section-header"))
         agent_log = self._read_agent_log()
         self._agent_viewer = PlanViewer(
             agent_log or "에이전트가 실행되지 않았습니다.",
@@ -123,7 +127,7 @@ class DetailScreen(Screen):
         panel.mount(self._agent_viewer)
 
         # Plan (open by default)
-        panel.mount(Static("[bold]Plan[/] (p)", id="plan-section-header"))
+        panel.mount(Static("[bold]Plan[/] (p) [dim]P:확대[/]", id="plan-section-header"))
         plan_content = self._plan if self._plan else "m키로 Plan 단계를 실행하세요"
         self._plan_viewer = PlanViewer(plan_content, id="plan-viewer")
         self._plan_viewer.display = True
@@ -141,7 +145,7 @@ class DetailScreen(Screen):
         panel.mount(self._checklist_widget)
 
         # Ticket (open by default)
-        panel.mount(Static("[bold]Ticket[/] (t)", id="desc-section-header"))
+        panel.mount(Static("[bold]Ticket[/] (t) [dim]T:확대[/]", id="desc-section-header"))
         ticket_empty = "Dooray 티켓 본문이 없습니다. f키로 조회할 수 있습니다."
         self._description_viewer = PlanViewer(
             self._description or ticket_empty,
@@ -151,7 +155,7 @@ class DetailScreen(Screen):
         panel.mount(self._description_viewer)
 
         # Comments (open by default)
-        panel.mount(Static("[bold]Comments[/] (c)", id="comments-section-header"))
+        panel.mount(Static("[bold]Comments[/] (c) [dim]C:확대[/]", id="comments-section-header"))
         comments_empty = "댓글이 없습니다. f키로 Dooray에서 조회할 수 있습니다."
         self._comments_viewer = PlanViewer(
             self._comments or comments_empty,
@@ -161,7 +165,7 @@ class DetailScreen(Screen):
         panel.mount(self._comments_viewer)
 
         # Worklog (하단, PlanViewer로 렌더링)
-        panel.mount(Static("[bold]Worklog[/] (l)", id="worklog-section-header"))
+        panel.mount(Static("[bold]Worklog[/] (l) [dim]L:확대[/]", id="worklog-section-header"))
         worklog_md = self._build_worklog_markdown()
         self._worklog_viewer = PlanViewer(
             worklog_md or "작업 기록이 없습니다.",
@@ -412,48 +416,70 @@ class DetailScreen(Screen):
         except Exception:
             pass
 
-    _plan_expanded: bool = False
+    _expanded_section: str = ""  # 현재 확대된 섹션 이름 (빈 문자열이면 없음)
+
+    # 섹션 이름 → (뷰어 속성, 헤더 ID)
+    _SECTION_MAP = {
+        "agent": ("_agent_viewer", "agent-section-header"),
+        "plan": ("_plan_viewer", "plan-section-header"),
+        "ticket": ("_description_viewer", "desc-section-header"),
+        "comments": ("_comments_viewer", "comments-section-header"),
+        "worklog": ("_worklog_viewer", "worklog-section-header"),
+    }
 
     def action_toggle_plan(self) -> None:
-        """p — Plan 보이기/숨기기."""
         try:
             self._plan_viewer.display = not self._plan_viewer.display
         except AttributeError:
             pass
 
-    def action_expand_plan(self) -> None:
-        """P — Plan 전체화면 확대/축소."""
-        self._plan_expanded = not self._plan_expanded
-        try:
-            if self._plan_expanded:
-                self._plan_viewer.display = True
-                self._plan_viewer.styles.max_height = None
-                self._plan_viewer.styles.min_height = "100%"
-                self._plan_viewer.styles.height = "100%"
-                for name in ("_agent_viewer", "_checklist_widget", "_description_viewer", "_comments_viewer", "_worklog_viewer"):
-                    v = getattr(self, name, None)
-                    if v:
-                        v.display = False
-                for hid in ("agent-section-header", "cl-section-header", "desc-section-header", "comments-section-header", "worklog-section-header"):
-                    try:
-                        self.query_one(f"#{hid}").display = False
-                    except Exception:
-                        pass
-            else:
-                self._plan_viewer.styles.max_height = 40
-                self._plan_viewer.styles.min_height = None
-                self._plan_viewer.styles.height = "auto"
-                for name in ("_agent_viewer", "_checklist_widget", "_description_viewer", "_comments_viewer", "_worklog_viewer"):
-                    v = getattr(self, name, None)
-                    if v:
-                        v.display = True
-                for hid in ("agent-section-header", "cl-section-header", "desc-section-header", "comments-section-header", "worklog-section-header"):
-                    try:
-                        self.query_one(f"#{hid}").display = True
-                    except Exception:
-                        pass
-        except AttributeError:
-            pass
+    def action_expand_section(self, section: str) -> None:
+        """대문자키 — 해당 섹션 전체화면 확대/축소."""
+        if self._expanded_section == section:
+            # 축소 — 모든 섹션 복원
+            self._expanded_section = ""
+            for name, (viewer_attr, header_id) in self._SECTION_MAP.items():
+                v = getattr(self, viewer_attr, None)
+                if v:
+                    v.display = True
+                    v.styles.height = "auto"
+                    v.styles.min_height = None
+                    v.styles.max_height = 40
+                try:
+                    self.query_one(f"#{header_id}").display = True
+                except Exception:
+                    pass
+            # checklist도 복원
+            if hasattr(self, "_checklist_widget"):
+                self._checklist_widget.display = True
+            try:
+                self.query_one("#cl-section-header").display = True
+            except Exception:
+                pass
+        else:
+            # 확대 — 선택한 섹션만 표시
+            self._expanded_section = section
+            target_attr, target_header = self._SECTION_MAP.get(section, ("", ""))
+            for name, (viewer_attr, header_id) in self._SECTION_MAP.items():
+                v = getattr(self, viewer_attr, None)
+                is_target = (name == section)
+                if v:
+                    v.display = is_target
+                    if is_target:
+                        v.styles.height = "1fr"
+                        v.styles.min_height = "100%"
+                        v.styles.max_height = None
+                try:
+                    self.query_one(f"#{header_id}").display = is_target
+                except Exception:
+                    pass
+            # checklist 숨기기
+            if hasattr(self, "_checklist_widget"):
+                self._checklist_widget.display = False
+            try:
+                self.query_one("#cl-section-header").display = False
+            except Exception:
+                pass
 
     def action_toggle_worklog(self) -> None:
         try:
