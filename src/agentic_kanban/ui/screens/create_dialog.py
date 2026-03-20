@@ -621,10 +621,14 @@ class PlanPromptDialog(ModalScreen):
         self.query_one("#input-spec", TextArea).focus()
 
     def _resize_all_textareas(self) -> None:
-        """모든 TextArea 높이를 줄 수에 맞게 조절."""
+        """모든 TextArea 높이를 실제 렌더링 줄 수(wrap 포함)에 맞게 조절."""
         for ta in self.query(TextArea):
-            line_count = ta.text.count("\n") + 1
-            ta.styles.height = max(3, min(line_count + 1, 12))
+            # virtual_size.height = wrap된 실제 줄 수
+            rendered_lines = ta.virtual_size.height
+            # newline 기반 줄 수도 고려 (둘 중 큰 값)
+            newline_lines = ta.text.count("\n") + 1
+            lines = max(rendered_lines, newline_lines)
+            ta.styles.height = max(6, min(lines + 1, 16))
 
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
         self._resize_all_textareas()
@@ -774,8 +778,10 @@ class ReviewPromptDialog(ModalScreen):
 
     def _resize_all_textareas(self) -> None:
         for ta in self.query(TextArea):
-            line_count = ta.text.count("\n") + 1
-            ta.styles.height = max(3, min(line_count + 1, 12))
+            rendered_lines = ta.virtual_size.height
+            newline_lines = ta.text.count("\n") + 1
+            lines = max(rendered_lines, newline_lines)
+            ta.styles.height = max(6, min(lines + 1, 16))
 
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
         self._resize_all_textareas()
