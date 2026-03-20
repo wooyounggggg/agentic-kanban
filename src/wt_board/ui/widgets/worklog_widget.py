@@ -19,17 +19,14 @@ _AUTHOR_COLOR = {
 
 def _format_entry(entry: WorklogEntry, index: int) -> str:
     from rich.markup import escape
-    author = entry.author
     color = _AUTHOR_COLOR.get(entry.author, "white")
     at_display = format_short_date(entry.at) if entry.at else ""
-
-    header = f" [{color}]{at_display}[/]  [dim]({author})[/]"
     body = escape(entry.work_done) if entry.work_done else "(내용 없음)"
 
-    lines = [f"[dim]╭──[/]{header}", f"[dim]│[/]  {body}"]
+    lines = [f"[{color} bold]{at_display}[/]  [dim]{entry.author}[/]"]
+    lines.append(f"  {body}")
     if entry.next_action:
-        lines.append(f"[dim]│[/]  [dim]→[/] {escape(entry.next_action)}")
-    lines.append("[dim]╰──────────────────────────────────────[/]")
+        lines.append(f"  [dim]→ {escape(entry.next_action)}[/]")
     return "\n".join(lines)
 
 
