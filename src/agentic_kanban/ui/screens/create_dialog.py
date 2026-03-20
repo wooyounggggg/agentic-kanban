@@ -10,8 +10,26 @@ from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, OptionList, Static, TextArea
+from textual.widgets.text_area import Selection, Location
 
 from agentic_kanban.models.config import StatusDef
+
+
+class PromptTextArea(TextArea):
+    """Ctrl+A = 전체 선택, Ctrl+C/V 지원 TextArea."""
+
+    BINDINGS = [
+        # 기존 ctrl+a(cursor_line_start) 제거하고 전체 선택으로 교체
+        b for b in TextArea.BINDINGS
+        if not (hasattr(b, 'key') and 'ctrl+a' in b.key)
+    ] + [
+        Binding("ctrl+a", "select_all_text", "Select All", show=False, priority=True),
+    ]
+
+    def action_select_all_text(self) -> None:
+        last_line = self.document.line_count - 1
+        last_col = len(self.document.get_line(last_line))
+        self.selection = Selection(start=(0, 0), end=(last_line, last_col))
 from agentic_kanban.ui.themes import THEME_NAMES
 
 
@@ -608,11 +626,11 @@ class PlanPromptDialog(ModalScreen):
         with Vertical():
             yield Static("Plan 작성", classes="dialog-title")
             yield Static("Spec 프롬프트 (필수):", classes="dialog-label")
-            yield TextArea(id="input-spec")
+            yield PromptTextArea(id="input-spec")
             yield Static("참고 지식 (선택):", classes="dialog-label")
-            yield TextArea(id="input-context")
+            yield PromptTextArea(id="input-context")
             yield Static("TC 프롬프트 (선택):", classes="dialog-label")
-            yield TextArea(id="input-tc")
+            yield PromptTextArea(id="input-tc")
             with Horizontal(classes="btn-row"):
                 yield Button("실행", variant="primary", id="btn-submit", disabled=True)
                 yield Button("취소", variant="default", id="btn-cancel")
@@ -768,7 +786,7 @@ class ReviewPromptDialog(ModalScreen):
         with Vertical():
             yield Static("수정 요청", classes="dialog-title")
             yield Static("수정 프롬프트:", classes="dialog-label")
-            yield TextArea(id="input-review")
+            yield PromptTextArea(id="input-review")
             with Horizontal(classes="btn-row"):
                 yield Button("실행", variant="primary", id="btn-submit", disabled=True)
                 yield Button("취소", variant="default", id="btn-cancel")
