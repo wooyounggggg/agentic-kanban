@@ -79,7 +79,7 @@ class KanbanColumn(Vertical):
         count = len(self.issues)
         color = self._COL_COLORS.get(self.status_def.name, "white")
         label = self.status_def.label
-        yield Static(f"[{color} bold]{label}[/] [dim]({count})[/]", classes="col-header")
+        yield Static(f"[on {color}] [bold white]{label}[/bold white] [/] [dim]({count})[/]", classes="col-header")
 
         if not self.issues:
             yield Static("[dim]— empty —[/]", classes="col-empty")
