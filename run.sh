@@ -1,4 +1,4 @@
 #!/bin/bash
-# wt-board launcher
+# agentic-kanban launcher
 cd "$(dirname "$0")/.." || exit 1
-PYTHONPATH="wt-board/src" exec python3 -m wt_board.cli.main "$@"
+PYTHONPATH="agentic-kanban/src" exec python3 -m agentic_kanban.cli.main "$@"
