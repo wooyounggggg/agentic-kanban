@@ -44,7 +44,7 @@ class AgentService:
         def _worker():
             try:
                 result = subprocess.run(
-                    [binary, "--print", prompt],
+                    [binary, "--print", "--dangerously-skip-permissions", prompt],
                     cwd=wt_path,
                     capture_output=True,
                     text=True,
