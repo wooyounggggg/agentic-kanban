@@ -620,18 +620,24 @@ class PlanPromptDialog(ModalScreen):
     def on_mount(self) -> None:
         self.query_one("#input-spec", TextArea).focus()
 
-    def on_text_area_changed(self, event: TextArea.Changed) -> None:
-        try:
-            # 입력 줄 수에 따라 높이 조절
-            ta = event.text_area
+    def _resize_all_textareas(self) -> None:
+        """모든 TextArea 높이를 줄 수에 맞게 조절."""
+        for ta in self.query(TextArea):
             line_count = ta.text.count("\n") + 1
             ta.styles.height = max(3, min(line_count + 1, 12))
 
+    def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        self._resize_all_textareas()
+        try:
             spec_text = self.query_one("#input-spec", TextArea).text.strip()
             btn = self.query_one("#btn-submit", Button)
             btn.disabled = not spec_text
         except Exception:
             pass
+
+    def on_key(self, event) -> None:
+        """키 입력마다 TextArea 높이 재조정 (Changed 이벤트 누락 대비)."""
+        self.set_timer(0.05, self._resize_all_textareas)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
@@ -766,17 +772,22 @@ class ReviewPromptDialog(ModalScreen):
     def on_mount(self) -> None:
         self.query_one("#input-review", TextArea).focus()
 
-    def on_text_area_changed(self, event: TextArea.Changed) -> None:
-        try:
-            ta = event.text_area
+    def _resize_all_textareas(self) -> None:
+        for ta in self.query(TextArea):
             line_count = ta.text.count("\n") + 1
             ta.styles.height = max(3, min(line_count + 1, 12))
 
+    def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        self._resize_all_textareas()
+        try:
             review_text = self.query_one("#input-review", TextArea).text.strip()
             btn = self.query_one("#btn-submit", Button)
             btn.disabled = not review_text
         except Exception:
             pass
+
+    def on_key(self, event) -> None:
+        self.set_timer(0.05, self._resize_all_textareas)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
