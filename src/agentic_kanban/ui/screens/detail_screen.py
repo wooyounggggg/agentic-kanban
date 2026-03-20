@@ -460,14 +460,16 @@ class DetailScreen(Screen):
             # 확대 — 선택한 섹션만 표시
             self._expanded_section = section
             target_attr, target_header = self._SECTION_MAP.get(section, ("", ""))
+            # 터미널 높이에서 헤더/푸터/여유 빼서 뷰어 높이 계산
+            available = self.app.size.height - 5
             for name, (viewer_attr, header_id) in self._SECTION_MAP.items():
                 v = getattr(self, viewer_attr, None)
                 is_target = (name == section)
                 if v:
                     v.display = is_target
                     if is_target:
-                        v.styles.height = "1fr"
-                        v.styles.min_height = "100%"
+                        v.styles.height = available
+                        v.styles.min_height = available
                         v.styles.max_height = None
                 try:
                     self.query_one(f"#{header_id}").display = is_target
