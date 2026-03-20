@@ -468,7 +468,10 @@ class MoveDialog(ModalScreen):
             yield Button("취소", variant="default", id="move-btn-cancel")
 
     def on_mount(self) -> None:
-        self.query_one(OptionList).focus()
+        opt = self.query_one(OptionList)
+        opt.focus()
+        if opt.option_count > 0:
+            opt.highlighted = 0
 
     def action_cancel(self) -> None:
         self.dismiss(None)

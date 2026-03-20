@@ -188,16 +188,19 @@ class BoardScreen(Screen):
             board.mount(col)
             visible_col += 1
 
-    def _refresh_board(self) -> None:
-        """Reload data and rebuild the board UI."""
+    def _refresh_board(self, focus_ticket: str = "") -> None:
+        """Reload data and rebuild the board UI. Optionally re-focus a ticket."""
         self._issues_by_status.clear()
         self._tc_map.clear()
         self._agent_map.clear()
         self._load_data()
         self._rebuild_board()
-        self.col_index = self._next_nonempty_col(-1, +1)
-        self.card_index = 0
-        self._highlight_current()
+        if focus_ticket:
+            self._focus_ticket(focus_ticket)
+        else:
+            self.col_index = self._next_nonempty_col(-1, +1)
+            self.card_index = 0
+            self._highlight_current()
 
     # ------------------------------------------------------------------
     # Layout
@@ -235,10 +238,18 @@ class BoardScreen(Screen):
         return cols[self.col_index]
 
     def _current_issue(self) -> Optional[Issue]:
-        col = self._current_column()
-        if col is None:
+        """현재 선택된 이슈 — 데이터 기반 (위젯 의존 없음)."""
+        visible = [
+            s for s in self._statuses
+            if not (s.terminal and not self._show_completed)
+        ]
+        if self.col_index < 0 or self.col_index >= len(visible):
             return None
-        return col.focused_issue()
+        status_name = visible[self.col_index].name
+        issues = self._issues_by_status.get(status_name, [])
+        if self.card_index < 0 or self.card_index >= len(issues):
+            return None
+        return issues[self.card_index]
 
     def _clamp_card(self) -> None:
         col = self._current_column()
@@ -569,9 +580,7 @@ class BoardScreen(Screen):
                 issue_obj.pipeline_step = new_status
                 self._store.write_issue(saved_ticket, issue_obj)
 
-                self._refresh_board()
-                # Re-focus the moved card
-                self._focus_ticket(saved_ticket)
+                self._refresh_board(focus_ticket=saved_ticket)
                 self.notify(f"#{saved_ticket} → {new_status}", severity="information")
             except Exception as exc:
                 self.notify(f"이동 실패: {exc}", severity="error")
@@ -583,14 +592,23 @@ class BoardScreen(Screen):
 
     def _focus_ticket(self, ticket: str) -> None:
         """Move focus to a specific ticket after board refresh."""
-        cols = self._columns()
-        for col_idx, col in enumerate(cols):
-            for card_idx, issue in enumerate(col.issues):
+        # 데이터 기반으로 인덱스 계산 (위젯이 아직 안 마운트됐을 수 있으므로)
+        visible_statuses = [
+            s for s in self._statuses
+            if not (s.terminal and not self._show_completed)
+        ]
+        for col_idx, status_def in enumerate(visible_statuses):
+            issues = self._issues_by_status.get(status_def.name, [])
+            for card_idx, issue in enumerate(issues):
                 if issue.ticket == ticket:
                     self.col_index = col_idx
                     self.card_index = card_idx
                     self._highlight_current()
                     return
+        # 못 찾으면 기본 위치
+        self.col_index = self._next_nonempty_col(-1, +1)
+        self.card_index = 0
+        self._highlight_current()
 
     def action_toggle_completed(self) -> None:
         """H키 — 완료(completed) 이슈 표시/숨기기 토글."""
