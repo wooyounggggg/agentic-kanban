@@ -45,8 +45,8 @@ class BoardScreen(Screen):
     BINDINGS = [
         Binding("n", "new_issue", "New"),
         Binding("enter", "open_detail", "Open"),
+        Binding("r", "run_pipeline", "Run"),
         Binding("m", "move_card", "Move"),
-        Binding("s", "sync", "Sync"),
         Binding("T", "theme", "Theme"),
         Binding("v", "toggle_completed", "완료토글"),
         Binding("x", "delete_item", "Delete"),
@@ -624,17 +624,30 @@ class BoardScreen(Screen):
         else:
             self.notify("완료 이슈 숨김.", severity="information")
 
-    def action_sync(self) -> None:
-        sync_service = self._get_sync_service()
-        if sync_service is None:
-            self.notify("Dooray 연동이 설정되지 않았습니다.", severity="warning")
+    def action_run_pipeline(self) -> None:
+        """r키 — 보드에서 직접 파이프라인 실행 (상태에 맞는 다이얼로그)."""
+        issue = self._current_issue()
+        if issue is None:
+            self.notify("이슈를 선택해주세요.", severity="warning")
             return
-        try:
-            updated = sync_service.sync_all()
-            self._refresh_board()
-            self.notify(f"Dooray 동기화 완료 ({len(updated)}개 이슈)", severity="information")
-        except Exception as exc:
-            self.notify(f"동기화 실패: {exc}", severity="error")
+        # 상세 화면을 열고 거기서 실행
+        from wt_board.ui.screens.detail_screen import DetailScreen
+        sync_svc = self._get_sync_service()
+        agent_svc = self._build_agent_service()
+        pipeline_svc = self._build_pipeline_service(agent_service=agent_svc)
+        detail = DetailScreen(
+            issue=issue,
+            store=self._store,
+            sync_service=sync_svc,
+            config=self._config,
+            pipeline_service=pipeline_svc,
+            agent_service=agent_svc,
+        )
+        # 상세 화면 push 후 바로 r키 동작 트리거
+        def _trigger_run():
+            detail.action_run_pipeline()
+        self.app.push_screen(detail)
+        self.set_timer(0.1, _trigger_run)
 
     def action_search(self) -> None:
         self.notify("Search — not yet implemented.", severity="information")

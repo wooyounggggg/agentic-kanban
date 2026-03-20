@@ -30,12 +30,11 @@ class DetailScreen(Screen):
 
     BINDINGS = [
         Binding("escape", "pop_screen", "뒤로"),
-        Binding("m", "advance_pipeline", "다음단계"),
-        Binding("r", "rerun_pipeline", "재실행"),
-        Binding("a", "focus_agent", "세션보기"),
-        Binding("space", "toggle_tc_item", "TC Toggle"),
+        Binding("r", "run_pipeline", "실행"),
+        Binding("m", "move_status", "상태이동"),
+        Binding("space", "toggle_tc_item", "TC"),
         Binding("p", "toggle_plan", "Plan"),
-        Binding("l", "toggle_worklog", "Worklog"),
+        Binding("l", "toggle_worklog", "Log"),
         Binding("t", "toggle_ticket", "Ticket"),
         Binding("c", "toggle_comments", "Comments"),
         Binding("f", "fetch_body", "Fetch"),
@@ -229,8 +228,8 @@ class DetailScreen(Screen):
     def action_pop_screen(self) -> None:
         self.app.pop_screen()
 
-    def action_advance_pipeline(self) -> None:
-        """m키 — 현재 단계에 맞는 다이얼로그 표시."""
+    def action_run_pipeline(self) -> None:
+        """r키 — 현재 단계에 맞는 실행 다이얼로그 표시."""
         if self._pipeline_service is None:
             self.notify("파이프라인 서비스가 없습니다.", severity="warning")
             return
@@ -328,24 +327,6 @@ class DetailScreen(Screen):
                 self.notify("수정 작업을 시작합니다.", severity="information")
 
         self.app.push_screen(ReviewPromptDialog(), callback=on_result)
-
-    def action_rerun_pipeline(self) -> None:
-        """r → 현재 단계 재실행 (에이전트에 현재 단계 컨텍스트 재전송)."""
-        if self._pipeline_service is None:
-            self.notify("파이프라인 서비스가 없습니다.", severity="warning")
-            return
-        current = self._pipeline_service.current_step(self.issue.ticket)
-        self.notify(
-            f"{current.label} 단계를 재실행하려면 m키를 눌러 다이얼로그에서 실행하세요.",
-            severity="information",
-        )
-
-    def action_focus_agent(self) -> None:
-        """a → 에이전트 상태 표시."""
-        if self._agent_service and self._agent_service.is_running(self.issue.ticket):
-            self.notify("에이전트 실행 중...", severity="information")
-        else:
-            self.notify("에이전트가 실행 중이 아닙니다.", severity="warning")
 
     def _on_agent_complete(self, ticket: str) -> None:
         """Called when agent finishes — reload data and notify."""
