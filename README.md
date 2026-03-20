@@ -16,7 +16,7 @@
 
 ---
 
-![Board Screenshot](docs/screenshot-board.svg)
+![Board Screenshot](https://github.com/user-attachments/assets/e3050022-bd5b-4472-9377-12f43ec5cb6b)
 
 ## Why agentic-kanban?
 
