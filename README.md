@@ -4,6 +4,8 @@ AI 에이전트 기반 파이프라인 실행을 지원하는 TUI 칸반보드.
 
 Git worktree 기반 병렬 개발 워크플로우를 관리합니다.
 
+![Board Screenshot](docs/screenshot-board.svg)
+
 ## 특징
 
 - **파이프라인 실행**: Plan → Implement → Review → Completed
