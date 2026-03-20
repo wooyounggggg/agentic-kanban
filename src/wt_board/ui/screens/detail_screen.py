@@ -109,7 +109,10 @@ class DetailScreen(Screen):
         # 순서: Agent → Plan → TC → Ticket → Comments → Worklog
 
         # Agent log (live)
-        panel.mount(Static("[bold]Agent[/] (a)", id="agent-section-header"))
+        agent_status = ""
+        if self._agent_service and self._agent_service.is_running(self.issue.ticket):
+            agent_status = " [bold #8fac6e]⟳ 작업중...[/]"
+        panel.mount(Static(f"[bold]Agent[/] (a){agent_status}", id="agent-section-header"))
         agent_log = self._read_agent_log()
         self._agent_viewer = PlanViewer(
             agent_log or "에이전트가 실행되지 않았습니다.",
@@ -387,7 +390,17 @@ class DetailScreen(Screen):
         if not self._agent_service or not self._store:
             return
         try:
-            if not self._agent_service.is_running(self.issue.ticket):
+            running = self._agent_service.is_running(self.issue.ticket)
+            # 헤더 상태 갱신
+            try:
+                header = self.query_one("#agent-section-header", Static)
+                if running:
+                    header.update("[bold]Agent[/] (a) [bold #8fac6e]⟳ 작업중...[/]")
+                else:
+                    header.update("[bold]Agent[/] (a)")
+            except Exception:
+                pass
+            if not running:
                 return
             log = self._read_agent_log()
             if log and hasattr(self, "_agent_viewer"):
