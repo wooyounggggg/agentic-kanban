@@ -9,7 +9,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, OptionList, Static
+from textual.widgets import Button, Input, OptionList, Static, TextArea
 
 from wt_board.models.config import StatusDef
 from wt_board.ui.themes import THEME_NAMES
@@ -594,6 +594,10 @@ class PlanPromptDialog(ModalScreen):
     PlanPromptDialog .dialog-hint {{
         color: #6e7681;
     }}
+    PlanPromptDialog TextArea {{
+        min-height: 3;
+        max-height: 8;
+    }}
     PlanPromptDialog .btn-row {{
         margin-top: 1;
         height: 3;
@@ -604,20 +608,23 @@ class PlanPromptDialog(ModalScreen):
         with Vertical():
             yield Static("Plan 작성", classes="dialog-title")
             yield Static("Spec 프롬프트 (필수):", classes="dialog-label")
-            yield Input(placeholder="구현할 기능을 설명하세요", id="input-spec")
+            yield TextArea(id="input-spec")
             yield Static("TC 프롬프트 (선택):", classes="dialog-label")
-            yield Input(placeholder="테스트 케이스 요구사항 (비워두면 생략)", id="input-tc")
+            yield TextArea(id="input-tc")
             with Horizontal(classes="btn-row"):
                 yield Button("실행", variant="primary", id="btn-submit", disabled=True)
                 yield Button("취소", variant="default", id="btn-cancel")
 
     def on_mount(self) -> None:
-        self.query_one("#input-spec", Input).focus()
+        self.query_one("#input-spec", TextArea).focus()
 
-    def on_input_changed(self, event: Input.Changed) -> None:
-        if event.input.id == "input-spec":
+    def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        try:
+            spec_text = self.query_one("#input-spec", TextArea).text.strip()
             btn = self.query_one("#btn-submit", Button)
-            btn.disabled = not event.value.strip()
+            btn.disabled = not spec_text
+        except Exception:
+            pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
@@ -625,18 +632,12 @@ class PlanPromptDialog(ModalScreen):
         elif event.button.id == "btn-submit":
             self._do_submit()
 
-    def on_input_submitted(self, event: Input.Submitted) -> None:
-        if event.input.id == "input-spec":
-            self.query_one("#input-tc", Input).focus()
-        elif event.input.id == "input-tc":
-            self._do_submit()
-
     def _do_submit(self) -> None:
-        spec = self.query_one("#input-spec", Input).value.strip()
+        spec = self.query_one("#input-spec", TextArea).text.strip()
         if not spec:
             self.notify("Spec 프롬프트를 입력해주세요.", severity="error")
             return
-        tc = self.query_one("#input-tc", Input).value.strip()
+        tc = self.query_one("#input-tc", TextArea).text.strip()
         self.dismiss({"spec": spec, "tc": tc})
 
     def action_cancel(self) -> None:
@@ -735,6 +736,10 @@ class ReviewPromptDialog(ModalScreen):
         color: #8b949e;
         margin-top: 1;
     }}
+    ReviewPromptDialog TextArea {{
+        min-height: 3;
+        max-height: 8;
+    }}
     ReviewPromptDialog .btn-row {{
         margin-top: 1;
         height: 3;
@@ -745,18 +750,21 @@ class ReviewPromptDialog(ModalScreen):
         with Vertical():
             yield Static("수정 요청", classes="dialog-title")
             yield Static("수정 프롬프트:", classes="dialog-label")
-            yield Input(placeholder="수정할 내용을 설명하세요", id="input-review")
+            yield TextArea(id="input-review")
             with Horizontal(classes="btn-row"):
                 yield Button("실행", variant="primary", id="btn-submit", disabled=True)
                 yield Button("취소", variant="default", id="btn-cancel")
 
     def on_mount(self) -> None:
-        self.query_one("#input-review", Input).focus()
+        self.query_one("#input-review", TextArea).focus()
 
-    def on_input_changed(self, event: Input.Changed) -> None:
-        if event.input.id == "input-review":
+    def on_text_area_changed(self, event: TextArea.Changed) -> None:
+        try:
+            review_text = self.query_one("#input-review", TextArea).text.strip()
             btn = self.query_one("#btn-submit", Button)
-            btn.disabled = not event.value.strip()
+            btn.disabled = not review_text
+        except Exception:
+            pass
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
@@ -764,11 +772,8 @@ class ReviewPromptDialog(ModalScreen):
         elif event.button.id == "btn-submit":
             self._do_submit()
 
-    def on_input_submitted(self, event: Input.Submitted) -> None:
-        self._do_submit()
-
     def _do_submit(self) -> None:
-        review = self.query_one("#input-review", Input).value.strip()
+        review = self.query_one("#input-review", TextArea).text.strip()
         if not review:
             self.notify("수정 프롬프트를 입력해주세요.", severity="error")
             return
