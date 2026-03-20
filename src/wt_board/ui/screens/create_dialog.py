@@ -797,12 +797,15 @@ class ConfirmDialog(ModalScreen):
     ConfirmDialog > Vertical {{
         {_DIALOG_CSS}
         width: 50;
-        max-height: 8;
+        max-height: 12;
     }}
     ConfirmDialog .dialog-title {{
         color: #c47070;
         text-style: bold;
         margin-bottom: 1;
+    }}
+    ConfirmDialog Button {{
+        margin: 1 1 0 0;
     }}
     """
 
