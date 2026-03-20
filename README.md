@@ -81,7 +81,7 @@ project:
 tracker:
   type: dooray
   dooray:
-    cli_path: ~/.mcp-global-server/dooray-cli.js
+    cli_path: tools/dooray-cli.js
     api_key: <your-api-key>
   sync_interval: 60
 

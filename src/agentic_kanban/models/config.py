@@ -42,7 +42,7 @@ DEFAULT_STATUSES = [
 
 @dataclass
 class DoorayConfig:
-    cli_path: str = "~/.mcp-global-server/dooray-cli.js"
+    cli_path: str = "tools/dooray-cli.js"
     project_id: str = ""
     api_key: str = ""
 
@@ -132,7 +132,7 @@ class BoardConfig:
             config.tracker = TrackerConfig(
                 type=tr.get("type", "dooray"),
                 dooray=DoorayConfig(
-                    cli_path=dooray_raw.get("cli_path", "~/.mcp-global-server/dooray-cli.js"),
+                    cli_path=dooray_raw.get("cli_path", "tools/dooray-cli.js"),
                     project_id=dooray_raw.get("project_id", ""),
                     api_key=dooray_raw.get("api_key", ""),
                 ),

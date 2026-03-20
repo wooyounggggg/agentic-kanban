@@ -24,7 +24,7 @@ class DoorayTracker(TrackerPlugin):
     ----------
     cli_path:
         Path to the ``dooray-cli.js`` file, e.g.
-        ``~/.mcp-global-server/dooray-cli.js``.
+        ``tools/dooray-cli.js``.
     api_key:
         Optional API key passed via the ``DOORAY_API_KEY`` environment
         variable when calling the CLI.
