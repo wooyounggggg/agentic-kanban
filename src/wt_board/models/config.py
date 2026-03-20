@@ -77,6 +77,7 @@ class ProjectConfig:
 @dataclass
 class UIConfig:
     theme: str = "brown"
+    show_completed: bool = False
 
 
 @dataclass
@@ -166,6 +167,7 @@ class BoardConfig:
         if ui_raw:
             config.ui = UIConfig(
                 theme=ui_raw.get("theme", "brown"),
+                show_completed=ui_raw.get("show_completed", False),
             )
 
         return config
@@ -217,6 +219,7 @@ class BoardConfig:
         ]
         data["ui"] = {
             "theme": self.ui.theme,
+            "show_completed": self.ui.show_completed,
         }
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:

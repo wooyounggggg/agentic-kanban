@@ -86,7 +86,7 @@ class KanbanColumn(Vertical):
                     issue,
                     tc_progress=tc,
                     agent_status=agent_st,
-                    status_label=self.status_def.label,
+                    status_label=issue.tracker.remote_status or "",
                     pipeline_step=pipeline_step,
                     agent_alive=agent_alive,
                 )

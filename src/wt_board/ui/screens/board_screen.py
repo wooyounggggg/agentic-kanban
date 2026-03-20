@@ -139,6 +139,7 @@ class BoardScreen(Screen):
             self._store = store
             self._config = store.read_config()
             self._statuses = self._config.statuses
+            self._show_completed = self._config.ui.show_completed
 
             tickets = store.list_issues()
             all_issues: List[Issue] = []
@@ -614,9 +615,19 @@ class BoardScreen(Screen):
         self._highlight_current()
 
     def action_toggle_completed(self) -> None:
-        """H키 — 완료(completed) 이슈 표시/숨기기 토글."""
+        """v키 — 완료(completed) 이슈 표시/숨기기 토글."""
         self._show_completed = not self._show_completed
         self._refresh_board()
+        # config에 저장
+        try:
+            if self._store:
+                from wt_board.store.board_store import find_board_root
+                bp = find_board_root()
+                if bp:
+                    self._config.ui.show_completed = self._show_completed
+                    self._config.to_yaml(bp / "config.yaml")
+        except Exception:
+            pass
         if self._show_completed:
             self.notify("완료 이슈 표시.", severity="information")
         else:

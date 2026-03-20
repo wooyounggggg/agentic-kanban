@@ -70,7 +70,7 @@ class IssueCard(Static):
             step_label = self._pipeline_step.capitalize()
             parts.append(f"[on #3a3430 #c4956a] {step_label} [/]")
         if self._status_label:
-            parts.append(f"[on #3a3430] {self._status_label} [/]")
+            parts.append(f"[dim]{escape(self._status_label)}[/]")
         if self.issue.assignee:
             parts.append(f"[dim]@{escape(self.issue.assignee)}[/]")
         if self.tc_progress:
