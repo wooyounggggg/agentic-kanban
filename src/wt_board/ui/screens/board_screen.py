@@ -183,7 +183,7 @@ class BoardScreen(Screen):
                 issues=issues,
                 tc_map=self._tc_map,
                 agent_map=self._agent_map,
-                selected_index=0 if (visible_col == self.col_index and issues) else -1,
+                selected_index=self.card_index if (visible_col == self.col_index and issues) else -1,
             )
             board.mount(col)
             visible_col += 1
@@ -194,13 +194,15 @@ class BoardScreen(Screen):
         self._tc_map.clear()
         self._agent_map.clear()
         self._load_data()
-        self._rebuild_board()
+        # 먼저 인덱스 계산 (rebuild 시 selected_index로 반영됨)
         if focus_ticket:
             self._focus_ticket(focus_ticket)
         else:
             self.col_index = self._next_nonempty_col(-1, +1)
             self.card_index = 0
-            self._highlight_current()
+        self._rebuild_board()
+        # 위젯 마운트 후 하이라이트 — set_timer로 다음 프레임에서 실행
+        self.set_timer(0.05, self._highlight_current)
 
     # ------------------------------------------------------------------
     # Layout
