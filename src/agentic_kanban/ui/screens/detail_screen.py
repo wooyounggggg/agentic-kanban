@@ -411,9 +411,37 @@ class DetailScreen(Screen):
         except Exception:
             pass
 
+    _plan_expanded: bool = False
+
     def action_toggle_plan(self) -> None:
+        """p키 — Plan 확대/축소. 확대 시 다른 섹션 숨기고 Plan만 크게."""
+        self._plan_expanded = not self._plan_expanded
         try:
-            self._plan_viewer.display = not self._plan_viewer.display
+            if self._plan_expanded:
+                # Plan 확대 — 다른 섹션 숨기기
+                self._plan_viewer.styles.max_height = None  # 제한 해제
+                for viewer_name in ("_agent_viewer", "_checklist_widget", "_description_viewer", "_comments_viewer", "_worklog_viewer"):
+                    viewer = getattr(self, viewer_name, None)
+                    if viewer:
+                        viewer.display = False
+                # 섹션 헤더도 숨기기
+                for hid in ("agent-section-header", "cl-section-header", "desc-section-header", "comments-section-header", "worklog-section-header"):
+                    try:
+                        self.query_one(f"#{hid}").display = False
+                    except Exception:
+                        pass
+            else:
+                # Plan 축소 — 모든 섹션 복원
+                self._plan_viewer.styles.max_height = 24
+                for viewer_name in ("_agent_viewer", "_checklist_widget", "_description_viewer", "_comments_viewer", "_worklog_viewer"):
+                    viewer = getattr(self, viewer_name, None)
+                    if viewer:
+                        viewer.display = True
+                for hid in ("agent-section-header", "cl-section-header", "desc-section-header", "comments-section-header", "worklog-section-header"):
+                    try:
+                        self.query_one(f"#{hid}").display = True
+                    except Exception:
+                        pass
         except AttributeError:
             pass
 
