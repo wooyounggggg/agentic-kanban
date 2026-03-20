@@ -68,10 +68,18 @@ class KanbanColumn(Vertical):
         self.agent_map = agent_map or {}
         self.focused_index = selected_index
 
+    _COL_COLORS = {
+        "plan": "#e0a050",
+        "implement": "#50a0e0",
+        "review": "#c070c0",
+        "completed": "#50c070",
+    }
+
     def compose(self) -> ComposeResult:
         count = len(self.issues)
-        label = self.status_def.icon + " " + self.status_def.label
-        yield Static(f"{label} [dim]({count})[/]", classes="col-header")
+        color = self._COL_COLORS.get(self.status_def.name, "white")
+        label = self.status_def.label
+        yield Static(f"[{color} bold]{label}[/] [dim]({count})[/]", classes="col-header")
 
         if not self.issues:
             yield Static("[dim]— empty —[/]", classes="col-empty")
