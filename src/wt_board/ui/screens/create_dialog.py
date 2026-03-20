@@ -596,8 +596,7 @@ class PlanPromptDialog(ModalScreen):
         color: #6e7681;
     }}
     PlanPromptDialog TextArea {{
-        height: 4;
-        max-height: 10;
+        height: 3;
     }}
     PlanPromptDialog .btn-row {{
         margin-top: 1;
@@ -621,6 +620,11 @@ class PlanPromptDialog(ModalScreen):
 
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
         try:
+            # 입력 줄 수에 따라 높이 조절
+            ta = event.text_area
+            line_count = ta.text.count("\n") + 1
+            ta.styles.height = max(3, min(line_count + 1, 12))
+
             spec_text = self.query_one("#input-spec", TextArea).text.strip()
             btn = self.query_one("#btn-submit", Button)
             btn.disabled = not spec_text
@@ -739,8 +743,7 @@ class ReviewPromptDialog(ModalScreen):
         margin-top: 1;
     }}
     ReviewPromptDialog TextArea {{
-        height: 4;
-        max-height: 10;
+        height: 3;
     }}
     ReviewPromptDialog .btn-row {{
         margin-top: 1;
@@ -762,6 +765,10 @@ class ReviewPromptDialog(ModalScreen):
 
     def on_text_area_changed(self, event: TextArea.Changed) -> None:
         try:
+            ta = event.text_area
+            line_count = ta.text.count("\n") + 1
+            ta.styles.height = max(3, min(line_count + 1, 12))
+
             review_text = self.query_one("#input-review", TextArea).text.strip()
             btn = self.query_one("#btn-submit", Button)
             btn.disabled = not review_text
