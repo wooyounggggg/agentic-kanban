@@ -12,32 +12,24 @@ from wt_board.models.worklog import WorklogEntry
 from wt_board.utils import format_short_date
 
 
-_AUTHOR_BADGE = {
-    "agent": "agent",
-    "human": "human",
-}
-
 _AUTHOR_COLOR = {
     "agent": "cyan",
     "human": "green",
 }
 
-_BOX_WIDTH = 60
-
-
 def _format_entry(entry: WorklogEntry, index: int) -> str:
-    author = _AUTHOR_BADGE.get(entry.author, entry.author)
+    from rich.markup import escape
+    author = entry.author
     color = _AUTHOR_COLOR.get(entry.author, "white")
     at_display = format_short_date(entry.at) if entry.at else ""
 
-    header_line = f"[dim]┌[/] [{color}]{at_display}[/] [dim]({author})[/]"
-    body = entry.work_done or "(no description)"
-    body_line = f"[dim]│[/] {body}"
+    header = f" [{color}]{at_display}[/]  [dim]({author})[/]"
+    body = escape(entry.work_done) if entry.work_done else "(내용 없음)"
 
-    lines = [header_line, body_line]
+    lines = [f"[dim]╭──[/]{header}", f"[dim]│[/]  {body}"]
     if entry.next_action:
-        lines.append(f"[dim]│[/] [dim]→ 다음:[/] {entry.next_action}")
-    lines.append(f"[dim]└{'─' * (_BOX_WIDTH - 1)}[/]")
+        lines.append(f"[dim]│[/]  [dim]→[/] {escape(entry.next_action)}")
+    lines.append("[dim]╰──────────────────────────────────────[/]")
     return "\n".join(lines)
 
 
@@ -74,7 +66,7 @@ class WorklogWidget(VerticalScroll):
 
     def compose(self) -> ComposeResult:
         if not self.entries:
-            yield Static("[dim]No worklog entries.[/]", classes="wl-empty")
+            yield Static("작업 기록이 없습니다.", classes="wl-empty")
             return
         for idx, entry in enumerate(self.entries):
             yield Static(_format_entry(entry, idx), classes="wl-entry")
