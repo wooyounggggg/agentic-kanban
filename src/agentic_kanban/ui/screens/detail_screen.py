@@ -34,7 +34,7 @@ class DetailScreen(Screen):
         Binding("m", "move_status", "상태이동"),
         Binding("space", "toggle_tc_item", "TC"),
         Binding("p", "toggle_plan", "Plan"),
-        Binding("P", "expand_plan", "Plan 확대", show=False),
+        Binding("P", "expand_plan", "Plan확대"),
         Binding("l", "toggle_worklog", "Log"),
         Binding("t", "toggle_ticket", "Ticket"),
         Binding("c", "toggle_comments", "Comments"),
@@ -428,7 +428,8 @@ class DetailScreen(Screen):
             if self._plan_expanded:
                 self._plan_viewer.display = True
                 self._plan_viewer.styles.max_height = None
-                self._plan_viewer.styles.height = "1fr"
+                self._plan_viewer.styles.min_height = "100%"
+                self._plan_viewer.styles.height = "100%"
                 for name in ("_agent_viewer", "_checklist_widget", "_description_viewer", "_comments_viewer", "_worklog_viewer"):
                     v = getattr(self, name, None)
                     if v:
@@ -439,7 +440,8 @@ class DetailScreen(Screen):
                     except Exception:
                         pass
             else:
-                self._plan_viewer.styles.max_height = 24
+                self._plan_viewer.styles.max_height = 40
+                self._plan_viewer.styles.min_height = None
                 self._plan_viewer.styles.height = "auto"
                 for name in ("_agent_viewer", "_checklist_widget", "_description_viewer", "_comments_viewer", "_worklog_viewer"):
                     v = getattr(self, name, None)
