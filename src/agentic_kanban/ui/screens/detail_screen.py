@@ -449,19 +449,20 @@ class DetailScreen(Screen):
                     self.query_one(f"#{header_id}").display = True
                 except Exception:
                     pass
-            # checklist도 복원
+            # checklist + detail-header 복원
             if hasattr(self, "_checklist_widget"):
                 self._checklist_widget.display = True
-            try:
-                self.query_one("#cl-section-header").display = True
-            except Exception:
-                pass
+            for hid in ("cl-section-header", "detail-header"):
+                try:
+                    self.query_one(f"#{hid}").display = True
+                except Exception:
+                    pass
         else:
             # 확대 — 선택한 섹션만 표시
             self._expanded_section = section
             target_attr, target_header = self._SECTION_MAP.get(section, ("", ""))
-            # 터미널 높이에서 헤더/푸터/여유 빼서 뷰어 높이 계산
-            available = self.app.size.height - 5
+            # 터미널 높이에서 헤더(1)+푸터(1)+타이틀(2)+섹션헤더(1) 빼기
+            available = self.app.size.height - 4
             for name, (viewer_attr, header_id) in self._SECTION_MAP.items():
                 v = getattr(self, viewer_attr, None)
                 is_target = (name == section)
@@ -470,18 +471,19 @@ class DetailScreen(Screen):
                     if is_target:
                         v.styles.height = available
                         v.styles.min_height = available
-                        v.styles.max_height = None
+                        v.styles.max_height = 9999
                 try:
                     self.query_one(f"#{header_id}").display = is_target
                 except Exception:
                     pass
-            # checklist 숨기기
+            # checklist + detail-header 숨기기
             if hasattr(self, "_checklist_widget"):
                 self._checklist_widget.display = False
-            try:
-                self.query_one("#cl-section-header").display = False
-            except Exception:
-                pass
+            for hid in ("cl-section-header", "detail-header"):
+                try:
+                    self.query_one(f"#{hid}").display = False
+                except Exception:
+                    pass
 
     def action_toggle_worklog(self) -> None:
         try:
