@@ -269,8 +269,10 @@ class DetailScreen(Screen):
                 f"\n\n작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
             )
             if self._agent_service:
-                self._agent_service.resume_agent(ticket)
-                self._agent_service.send_command(ticket, prompt)
+                def _on_agent_done(t, output):
+                    self.app.call_from_thread(self._on_agent_complete, t)
+
+                self._agent_service.run_prompt(ticket, prompt, on_complete=_on_agent_done)
                 self.notify("Plan 작성을 시작합니다.", severity="information")
 
         self.app.push_screen(PlanPromptDialog(), callback=on_result)
@@ -293,8 +295,10 @@ class DetailScreen(Screen):
                 f"작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
             )
             if self._agent_service:
-                self._agent_service.resume_agent(ticket)
-                self._agent_service.send_command(ticket, prompt)
+                def _on_agent_done(t, output):
+                    self.app.call_from_thread(self._on_agent_complete, t)
+
+                self._agent_service.run_prompt(ticket, prompt, on_complete=_on_agent_done)
             # Advance pipeline step to implement (already checked gate above)
             self._pipeline_service.advance(self.issue.ticket)
             if self._store:
@@ -317,8 +321,10 @@ class DetailScreen(Screen):
                 f"작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
             )
             if self._agent_service:
-                self._agent_service.resume_agent(ticket)
-                self._agent_service.send_command(ticket, prompt)
+                def _on_agent_done(t, output):
+                    self.app.call_from_thread(self._on_agent_complete, t)
+
+                self._agent_service.run_prompt(ticket, prompt, on_complete=_on_agent_done)
                 self.notify("수정 작업을 시작합니다.", severity="information")
 
         self.app.push_screen(ReviewPromptDialog(), callback=on_result)
@@ -335,16 +341,28 @@ class DetailScreen(Screen):
         )
 
     def action_focus_agent(self) -> None:
-        """a → 에이전트 tmux window로 포커스 전환."""
-        if self._agent_service is None:
-            self.notify("에이전트 서비스가 없습니다.", severity="warning")
-            return
+        """a → 에이전트 상태 표시."""
+        if self._agent_service and self._agent_service.is_running(self.issue.ticket):
+            self.notify("에이전트 실행 중...", severity="information")
+        else:
+            self.notify("에이전트가 실행 중이 아닙니다.", severity="warning")
+
+    def _on_agent_complete(self, ticket: str) -> None:
+        """Called when agent finishes — reload data and notify."""
+        self._load_issue_data()
+        worklog_md = self._build_worklog_markdown()
         try:
-            ok, reason = self._agent_service.focus_agent(self.issue.ticket)
-            if not ok:
-                self.notify(f"세션 전환 실패: {reason}", severity="warning")
-        except Exception as exc:
-            self.notify(f"에이전트 오류: {exc}", severity="error")
+            self._worklog_viewer.update_content(worklog_md or "작업 기록이 없습니다.")
+        except Exception:
+            pass
+        try:
+            plan = self._store.read_plan(self.issue.ticket) if self._store else ""
+            if plan:
+                self._plan_viewer.update_content(plan)
+        except Exception:
+            pass
+        self._update_pipeline_header()
+        self.notify(f"#{ticket} 에이전트 작업 완료.", severity="information")
 
     def action_toggle_plan(self) -> None:
         try:

@@ -541,42 +541,11 @@ class BoardScreen(Screen):
                 self._store.write_issue(ticket, issue)
                 if desc:
                     self._store.write_description(ticket, desc)
-                # 새 이슈 → background agent 자동 시작
-                try:
-                    from wt_board.services.agent_service import AgentService
-                    from wt_board.models.agent import AgentStatus
-                    agent_svc = AgentService(self._store, self._config)
-                    agent_svc.start_agent(ticket)
-                    self._agent_map[ticket] = AgentStatus.ACTIVE
-                except Exception:
-                    pass
                 self._refresh_board()
                 self.notify(f"이슈 [cyan]#{ticket}[/] 생성 완료.", severity="information")
 
         existing = self._store.list_issues() if self._store else []
         self.app.push_screen(CreateDialog(tracker=tracker, existing_tickets=existing), callback=on_result)
-
-    def action_start_agent(self) -> None:
-        issue = self._current_issue()
-        if issue is None:
-            self.notify("이슈를 선택해주세요.", severity="warning")
-            return
-        if self._store is None:
-            self.notify("저장소가 연결되어 있지 않습니다.", severity="error")
-            return
-        try:
-            from wt_board.services.agent_service import AgentService
-            from wt_board.models.agent import AgentStatus
-            agent_svc = AgentService(self._store, self._config)
-            agent = agent_svc.resume_agent(issue.ticket)
-            if agent.status == AgentStatus.ACTIVE:
-                agent_svc.focus_agent(issue.ticket)
-                self._agent_map[issue.ticket] = AgentStatus.ACTIVE
-                self._rebuild_board()
-                self._highlight_current()
-                self.notify("에이전트 포커스 전환.", severity="information")
-        except Exception as exc:
-            self.notify(f"에이전트 오류: {exc}", severity="error")
 
     def action_move_card(self) -> None:
         """m키 — MoveDialog로 이슈 상태 변경."""
