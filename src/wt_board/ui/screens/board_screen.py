@@ -617,8 +617,7 @@ class BoardScreen(Screen):
     def action_toggle_completed(self) -> None:
         """v키 — 완료(completed) 이슈 표시/숨기기 토글."""
         self._show_completed = not self._show_completed
-        self._refresh_board()
-        # config에 저장
+        # config에 먼저 저장 (_load_data가 읽기 전에)
         try:
             if self._store:
                 from wt_board.store.board_store import find_board_root
@@ -628,6 +627,7 @@ class BoardScreen(Screen):
                     self._config.to_yaml(bp / "config.yaml")
         except Exception:
             pass
+        self._refresh_board()
         if self._show_completed:
             self.notify("완료 이슈 표시.", severity="information")
         else:
