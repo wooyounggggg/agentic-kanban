@@ -12,6 +12,18 @@ from wt_board.models.issue import Issue
 from wt_board.models.agent import AgentStatus
 
 
+_STATUS_PALETTE = [
+    "#6a8c5a", "#5a7a8c", "#8c6a7a", "#7a8c5a",
+    "#5a6a8c", "#8c7a5a", "#6a5a8c", "#5a8c7a",
+]
+
+
+def _status_color(status: str) -> str:
+    """문자열 해싱으로 muted 배경색 반환."""
+    h = sum(ord(c) for c in status)
+    return _STATUS_PALETTE[h % len(_STATUS_PALETTE)]
+
+
 _AGENT_BADGE = {
     AgentStatus.ACTIVE: " [bold #8fac6e]●[/]",
     AgentStatus.COMPLETED: " [dim #8fac6e]✓[/]",
@@ -67,7 +79,8 @@ class IssueCard(Static):
         # Line 2: Dooray status chip + assignee + TC + tags
         parts = []
         if self._status_label:
-            parts.append(f"[on #3a3430] {escape(self._status_label)} [/]")
+            bg = _status_color(self._status_label)
+            parts.append(f"[on {bg}] [bold white]{escape(self._status_label)}[/bold white] [/]")
         if self.issue.assignee:
             parts.append(f"[dim]@{escape(self.issue.assignee)}[/]")
         if self.tc_progress:
