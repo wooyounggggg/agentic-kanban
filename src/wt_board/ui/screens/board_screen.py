@@ -630,24 +630,81 @@ class BoardScreen(Screen):
         if issue is None:
             self.notify("이슈를 선택해주세요.", severity="warning")
             return
-        # 상세 화면을 열고 거기서 실행
-        from wt_board.ui.screens.detail_screen import DetailScreen
-        sync_svc = self._get_sync_service()
+
+        pipeline_svc = self._build_pipeline_service()
         agent_svc = self._build_agent_service()
-        pipeline_svc = self._build_pipeline_service(agent_service=agent_svc)
-        detail = DetailScreen(
-            issue=issue,
-            store=self._store,
-            sync_service=sync_svc,
-            config=self._config,
-            pipeline_service=pipeline_svc,
-            agent_service=agent_svc,
-        )
-        # 상세 화면 push 후 바로 r키 동작 트리거
-        def _trigger_run():
-            detail.action_run_pipeline()
-        self.app.push_screen(detail)
-        self.set_timer(0.1, _trigger_run)
+        if not pipeline_svc:
+            self.notify("파이프라인 서비스를 초기화할 수 없습니다.", severity="error")
+            return
+
+        current = pipeline_svc.current_step(issue.ticket)
+        ticket = issue.ticket
+
+        def _on_agent_done(t, output):
+            self.app.call_from_thread(self._refresh_board)
+            self.app.call_from_thread(
+                self.notify, f"#{t} 작업 완료.", "information"
+            )
+
+        if current.name == "plan":
+            from wt_board.ui.screens.create_dialog import PlanPromptDialog
+            def on_result(result):
+                if result is None:
+                    return
+                spec = result["spec"]
+                tc = result.get("tc", "")
+                prompt = (
+                    f"아래 요구사항을 기반으로 .board/issues/{ticket}/plan.md에 "
+                    f"구현 계획을 작성하세요.\n{spec}"
+                )
+                if tc:
+                    prompt += (
+                        f"\n\n테스트 케이스를 .board/issues/{ticket}/checklist.yaml에 "
+                        f"작성하세요.\n{tc}"
+                    )
+                prompt += f"\n\n작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
+                if agent_svc:
+                    agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)
+                    self.notify(f"#{ticket} Plan 실행 중...", severity="information")
+            self.app.push_screen(PlanPromptDialog(), callback=on_result)
+
+        elif current.name == "implement":
+            ok, reason = pipeline_svc.can_advance(ticket)
+            if not ok:
+                self.notify(reason, severity="warning")
+                return
+            from wt_board.ui.screens.create_dialog import ImplementConfirmDialog
+            def on_result(confirmed):
+                if not confirmed:
+                    return
+                prompt = (
+                    f".board/issues/{ticket}/plan.md를 기반으로 구현을 시작하세요.\n"
+                    f"작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
+                )
+                if agent_svc:
+                    agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)
+                pipeline_svc.advance(ticket)
+                self._refresh_board(focus_ticket=ticket)
+                self.notify(f"#{ticket} 구현 실행 중...", severity="information")
+            self.app.push_screen(ImplementConfirmDialog(), callback=on_result)
+
+        elif current.name == "review":
+            from wt_board.ui.screens.create_dialog import ReviewPromptDialog
+            def on_result(result):
+                if result is None:
+                    return
+                review = result["review"]
+                prompt = (
+                    f"아래 수정 요청을 반영하세요.\n{review}\n"
+                    f"작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
+                )
+                if agent_svc:
+                    agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)
+                    self.notify(f"#{ticket} 수정 실행 중...", severity="information")
+            self.app.push_screen(ReviewPromptDialog(), callback=on_result)
+
+        elif current.name == "completed":
+            self.notify("최종 단계입니다.", severity="information")
 
     def action_search(self) -> None:
         self.notify("Search — not yet implemented.", severity="information")
