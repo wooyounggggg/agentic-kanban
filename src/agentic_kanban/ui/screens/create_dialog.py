@@ -73,7 +73,7 @@ class CreateDialog(ModalScreen):
     }}
     CreateDialog .btn-row {{
         margin-top: 1;
-        height: 3;
+        height: 6;
     }}
     CreateDialog #btn-create {{
         display: none;
@@ -596,11 +596,11 @@ class PlanPromptDialog(ModalScreen):
         color: #6e7681;
     }}
     PlanPromptDialog TextArea {{
-        height: 3;
+        height: 6;
     }}
     PlanPromptDialog .btn-row {{
         margin-top: 1;
-        height: 3;
+        height: 6;
     }}
     """
 
@@ -690,7 +690,7 @@ class ImplementConfirmDialog(ModalScreen):
     }}
     ImplementConfirmDialog .btn-row {{
         margin-top: 1;
-        height: 3;
+        height: 6;
     }}
     """
 
@@ -752,11 +752,11 @@ class ReviewPromptDialog(ModalScreen):
         margin-top: 1;
     }}
     ReviewPromptDialog TextArea {{
-        height: 3;
+        height: 6;
     }}
     ReviewPromptDialog .btn-row {{
         margin-top: 1;
-        height: 3;
+        height: 6;
     }}
     """
 
