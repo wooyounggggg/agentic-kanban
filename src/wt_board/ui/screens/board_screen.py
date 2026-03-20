@@ -458,7 +458,29 @@ class BoardScreen(Screen):
                     pass
                 self.notify(f"프로젝트 [cyan]{target}[/] 삭제.", severity="information")
             return
-        self.notify("이슈 삭제는 아직 미구현입니다.", severity="warning")
+        # 보드에서 이슈 삭제
+        issue = self._current_issue()
+        if issue is None:
+            self.notify("이슈를 선택해주세요.", severity="warning")
+            return
+        saved_ticket = issue.ticket
+
+        from wt_board.ui.screens.create_dialog import ConfirmDialog
+        def on_result(confirmed) -> None:
+            if not confirmed:
+                return
+            try:
+                if self._store:
+                    self._store.archive_issue(saved_ticket)
+                    self._refresh_board()
+                    self.notify(f"#{saved_ticket} 삭제(아카이브) 완료.", severity="information")
+            except Exception as exc:
+                self.notify(f"삭제 실패: {exc}", severity="error")
+
+        self.app.push_screen(
+            ConfirmDialog(message=f"#{saved_ticket} 이슈를 삭제(아카이브)할까요?"),
+            callback=on_result,
+        )
 
     def action_new_issue(self) -> None:
         if self._sidebar_focused:

@@ -93,6 +93,10 @@ class WtBoardApp(App):
         except Exception:
             pass
 
+    def action_help(self) -> None:
+        from wt_board.ui.screens.create_dialog import HelpDialog
+        self.push_screen(HelpDialog())
+
     def action_request_quit(self) -> None:
         """q 한 번 → 안내, 빠르게 두 번 → 종료."""
         now = time.monotonic()

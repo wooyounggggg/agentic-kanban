@@ -766,3 +766,122 @@ class ReviewPromptDialog(ModalScreen):
 
     def action_cancel(self) -> None:
         self.dismiss(None)
+
+
+# ---------------------------------------------------------------------------
+# 확인 다이얼로그
+# ---------------------------------------------------------------------------
+
+class ConfirmDialog(ModalScreen):
+    """확인/취소 다이얼로그."""
+
+    BINDINGS = [
+        Binding("escape", "cancel", "취소"),
+        Binding("enter", "confirm", "확인", show=False),
+    ]
+
+    DEFAULT_CSS = f"""
+    ConfirmDialog {{
+        align: center middle;
+    }}
+    ConfirmDialog > Vertical {{
+        {_DIALOG_CSS}
+        width: 50;
+    }}
+    ConfirmDialog .dialog-title {{
+        color: #c47070;
+        text-style: bold;
+        margin-bottom: 1;
+    }}
+    """
+
+    def __init__(self, message: str = "", **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._message = message
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Static(self._message, classes="dialog-title")
+            with Horizontal():
+                yield Button("확인", variant="error", id="btn-confirm")
+                yield Button("취소", variant="default", id="btn-cancel")
+
+    def on_mount(self) -> None:
+        self.query_one("#btn-cancel", Button).focus()
+
+    def action_confirm(self) -> None:
+        self.dismiss(True)
+
+    def action_cancel(self) -> None:
+        self.dismiss(False)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-confirm":
+            self.dismiss(True)
+        elif event.button.id == "btn-cancel":
+            self.dismiss(False)
+
+
+# ---------------------------------------------------------------------------
+# 도움말 다이얼로그
+# ---------------------------------------------------------------------------
+
+class HelpDialog(ModalScreen):
+    """단축키 도움말."""
+
+    BINDINGS = [
+        Binding("escape", "close", "닫기"),
+        Binding("?", "close", "닫기", show=False),
+    ]
+
+    DEFAULT_CSS = f"""
+    HelpDialog {{
+        align: center middle;
+    }}
+    HelpDialog > Vertical {{
+        {_DIALOG_CSS}
+        width: 60;
+        max-height: 30;
+    }}
+    HelpDialog .help-title {{
+        color: #58a6ff;
+        text-style: bold;
+        margin-bottom: 1;
+    }}
+    """
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Static("wt-board 단축키", classes="help-title")
+            from textual.widgets import Markdown
+            yield Markdown(
+                "## 칸반보드\\n"
+                "| 키 | 동작 |\\n"
+                "|---|---|\\n"
+                "| Enter | 이슈 상세 |\\n"
+                "| n | 새 이슈 추가 |\\n"
+                "| m | 상태 이동 |\\n"
+                "| x | 이슈 삭제 |\\n"
+                "| s | Dooray 동기화 |\\n"
+                "| v | 완료 이슈 토글 |\\n"
+                "| T | 테마 변경 |\\n"
+                "| q (x2) | 종료 |\\n\\n"
+                "## 상세 화면\\n"
+                "| 키 | 동작 |\\n"
+                "|---|---|\\n"
+                "| m | 현재 단계 실행 |\\n"
+                "| a | 에이전트 세션 보기 |\\n"
+                "| p | Plan 토글 |\\n"
+                "| t | Ticket 토글 |\\n"
+                "| c | Comments 토글 |\\n"
+                "| l | Worklog 토글 |\\n"
+                "| f | Dooray 조회 |\\n"
+                "| Esc | 뒤로 |\\n"
+            )
+            yield Button("닫기", variant="default", id="btn-close")
+
+    def action_close(self) -> None:
+        self.dismiss(None)
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(None)

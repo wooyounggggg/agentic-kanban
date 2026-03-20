@@ -66,16 +66,19 @@ Markdown {
 MarkdownH1 {
     text-align: left;
     content-align: left top;
+    color: #c0caf5;
 }
 
 MarkdownH2 {
     text-align: left;
     content-align: left top;
+    color: #c0caf5;
 }
 
 MarkdownH3 {
     text-align: left;
     content-align: left top;
+    color: #c0caf5;
 }
 
 PlanViewer MarkdownH1 {
