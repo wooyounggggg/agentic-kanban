@@ -123,7 +123,13 @@ class DoorayTracker(TrackerPlugin):
 
         ticket_id = str(data.get("id") or data.get("postId") or "")
         title = data.get("subject") or data.get("title") or ""
-        status = data.get("workflowClass") or data.get("status") or ""
+        # workflow.name = 한글 상태명 (e.g. "코드 리뷰 중"), fallback to workflowClass
+        workflow = data.get("workflow") or {}
+        status = ""
+        if isinstance(workflow, dict):
+            status = workflow.get("name") or ""
+        if not status:
+            status = data.get("workflowClass") or data.get("status") or ""
         url = data.get("url") or ""
 
         # Extract issue body / description

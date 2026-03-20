@@ -64,13 +64,10 @@ class IssueCard(Static):
         alive_badge = " [bold #8fac6e]●[/]" if self._agent_alive else ""
         line1 = f"[bold #d4a57a]#{ticket}[/] {title}{alive_badge}"
 
-        # Line 2: pipeline step chip + status chip + assignee + TC + tags
+        # Line 2: Dooray status chip + assignee + TC + tags
         parts = []
-        if self._pipeline_step:
-            step_label = self._pipeline_step.capitalize()
-            parts.append(f"[on #3a3430 #c4956a] {step_label} [/]")
         if self._status_label:
-            parts.append(f"[dim]{escape(self._status_label)}[/]")
+            parts.append(f"[on #3a3430] {escape(self._status_label)} [/]")
         if self.issue.assignee:
             parts.append(f"[dim]@{escape(self.issue.assignee)}[/]")
         if self.tc_progress:
