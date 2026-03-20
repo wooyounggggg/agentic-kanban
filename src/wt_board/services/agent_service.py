@@ -42,9 +42,16 @@ class AgentService:
         log_path = self._store.issue_dir(ticket) / "agent.log"
         log_file = open(log_path, "w", encoding="utf-8")
 
+        # macOS: script -q로 PTY 에뮬레이션 (파이프 버퍼링 우회)
+        import platform
+        cmd = [binary, "--print", "--dangerously-skip-permissions",
+               "--verbose", "--output-format", "stream-json", prompt]
+        if platform.system() == "Darwin":
+            # script -q /dev/null 로 unbuffered stdout
+            cmd = ["script", "-q", "/dev/null"] + cmd
+
         proc = subprocess.Popen(
-            [binary, "--print", "--dangerously-skip-permissions",
-             "--verbose", "--output-format", "stream-json", prompt],
+            cmd,
             cwd=wt_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
