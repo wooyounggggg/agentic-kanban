@@ -37,6 +37,7 @@ class DetailScreen(Screen):
         Binding("l", "toggle_worklog", "Log"),
         Binding("t", "toggle_ticket", "Ticket"),
         Binding("c", "toggle_comments", "Comments"),
+        Binding("a", "agent_status", "Agent"),
         Binding("f", "fetch_body", "Fetch"),
         Binding("up,k", "tc_up", "Up", show=False),
         Binding("down,j", "tc_down", "Down", show=False),
@@ -338,6 +339,14 @@ class DetailScreen(Screen):
             pass
         self._update_pipeline_header()
         self.notify(f"#{ticket} 에이전트 작업 완료.", severity="information")
+
+    def action_agent_status(self) -> None:
+        """a키 — 에이전트 상태 확인."""
+        if self._agent_service:
+            status = self._agent_service.get_status_text(self.issue.ticket)
+            self.notify(f"에이전트: {status}", severity="information")
+        else:
+            self.notify("에이전트 서비스 없음.", severity="warning")
 
     def action_toggle_plan(self) -> None:
         try:

@@ -38,24 +38,32 @@ class AgentService:
         wt_path = self._resolve_worktree_path(ticket)
         binary = self._config.agent.binary
 
-        agent = AgentSession(status=AgentStatus.ACTIVE, started_at=now_iso())
+        # Popen으로 PID 추적 가능하게
+        proc = subprocess.Popen(
+            [binary, "--print", "--dangerously-skip-permissions", prompt],
+            cwd=wt_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+
+        agent = AgentSession(
+            status=AgentStatus.ACTIVE,
+            pid=proc.pid,
+            started_at=now_iso(),
+        )
         self._store.write_agent(ticket, agent)
 
         def _worker():
             try:
-                result = subprocess.run(
-                    [binary, "--print", "--dangerously-skip-permissions", prompt],
-                    cwd=wt_path,
-                    capture_output=True,
-                    text=True,
-                    timeout=600,  # 10 min timeout
-                )
-                output = result.stdout.strip()
+                stdout, stderr = proc.communicate(timeout=600)
+                output = stdout.strip()
 
                 self._save_worklog(ticket, prompt, output)
 
                 agent_done = AgentSession(
                     status=AgentStatus.COMPLETED,
+                    pid=0,
                     started_at=agent.started_at,
                     last_heartbeat=now_iso(),
                 )
@@ -138,9 +146,43 @@ class AgentService:
         return str(fallback.resolve()) if fallback.exists() else str(project_root)
 
     def is_running(self, ticket: str) -> bool:
-        """Check if agent is currently running for this ticket."""
+        """Check if agent process is actually alive."""
         agent = self._store.read_agent(ticket)
-        return agent.status == AgentStatus.ACTIVE
+        if agent.status != AgentStatus.ACTIVE:
+            return False
+        if agent.pid > 0:
+            try:
+                os.kill(agent.pid, 0)
+                return True
+            except (ProcessLookupError, PermissionError):
+                # PID dead but status still active → fix it
+                agent.status = AgentStatus.COMPLETED
+                agent.last_heartbeat = now_iso()
+                self._store.write_agent(ticket, agent)
+                return False
+        return False
+
+    def get_status_text(self, ticket: str) -> str:
+        """사람이 읽을 수 있는 에이전트 상태."""
+        agent = self._store.read_agent(ticket)
+        if agent.status == AgentStatus.ACTIVE and agent.pid > 0:
+            try:
+                os.kill(agent.pid, 0)
+                # 실행 시간 계산
+                from datetime import datetime
+                started = datetime.fromisoformat(agent.started_at) if agent.started_at else None
+                if started:
+                    elapsed = datetime.now().astimezone() - started
+                    mins = int(elapsed.total_seconds() // 60)
+                    return f"실행중 ({mins}분 경과, PID {agent.pid})"
+                return f"실행중 (PID {agent.pid})"
+            except (ProcessLookupError, PermissionError):
+                return "완료"
+        if agent.status == AgentStatus.COMPLETED:
+            return "완료"
+        if agent.status == AgentStatus.ERROR:
+            return "오류"
+        return "대기"
 
     def check_alive(self, ticket: str) -> bool:
         return self.is_running(ticket)
