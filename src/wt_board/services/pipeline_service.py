@@ -48,14 +48,6 @@ class PipelineService:
             return True  # no artifact required
         return self._artifact_path(ticket, step.artifact).exists()
 
-    def _format_command(self, ticket: str, command: str) -> str:
-        try:
-            issue = self._store.read_issue(ticket)
-            title = issue.title
-        except FileNotFoundError:
-            title = ""
-        return command.format(ticket=ticket, title=title)
-
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -72,12 +64,11 @@ class PipelineService:
             step = self._steps()[0]
         return step or PipelineStep(name="plan", label="Plan")
 
-    def advance(self, ticket: str) -> Tuple[bool, str]:
-        """Try to advance to next step.
+    def can_advance(self, ticket: str) -> Tuple[bool, str]:
+        """Check if we can advance from the current step.
 
-        Returns (success, reason).
-        Checks that current step's artifact exists before advancing.
-        If ok: updates issue.pipeline_step, sends next command to agent.
+        Returns (ok, reason).
+        For plan->implement: plan.md must exist.
         """
         steps = self._steps()
         if not steps:
@@ -86,21 +77,32 @@ class PipelineService:
         current = self.current_step(ticket)
         current_idx = self._step_index(current.name)
 
-        # Check gate: artifact must exist for current step
+        if current_idx >= len(steps) - 1:
+            return False, "이미 마지막 단계입니다"
+
+        # Gate check: artifact must exist for current step
         if not self._artifact_exists(ticket, current):
             return False, (
                 f"'{current.artifact}' 파일이 없습니다. "
                 f"에이전트가 {current.label} 단계를 완료한 후 다시 시도하세요."
             )
 
-        # Advance
-        next_idx = current_idx + 1
-        if next_idx >= len(steps):
-            return False, "이미 마지막 단계입니다"
+        return True, ""
 
-        next_step = steps[next_idx]
+    def advance(self, ticket: str) -> Tuple[bool, str]:
+        """Advance to next step (no agent command — caller handles prompting).
 
-        # Update issue pipeline_step
+        Returns (success, reason).
+        """
+        ok, reason = self.can_advance(ticket)
+        if not ok:
+            return False, reason
+
+        steps = self._steps()
+        current = self.current_step(ticket)
+        current_idx = self._step_index(current.name)
+        next_step = steps[current_idx + 1]
+
         try:
             issue = self._store.read_issue(ticket)
             issue.pipeline_step = next_step.name
@@ -109,20 +111,13 @@ class PipelineService:
         except Exception as exc:
             return False, f"이슈 저장 실패: {exc}"
 
-        # Send command to agent
-        cmd = self._format_command(ticket, next_step.command)
-        self._agent.send_command(ticket, cmd)
-
         return True, f"{next_step.label} 단계로 이동했습니다"
 
-    def rerun(self, ticket: str) -> None:
-        """Re-send current step's command to agent."""
-        current = self.current_step(ticket)
-        cmd = self._format_command(ticket, current.command)
-        self._agent.send_command(ticket, cmd)
-
     def step_statuses(self, ticket: str) -> List[Tuple[PipelineStep, str]]:
-        """Return all steps with status: done / active / pending."""
+        """Return all steps with status: done / active / pending.
+
+        Based on issue.pipeline_step (kanban position), NOT artifact existence.
+        """
         steps = self._steps()
         if not steps:
             return []

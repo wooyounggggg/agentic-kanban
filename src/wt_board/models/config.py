@@ -10,48 +10,17 @@ from typing import Dict, List, Optional
 
 @dataclass
 class PipelineStep:
-    name: str = ""        # plan, tc, implement, review
-    label: str = ""       # Plan, TC, Implement, Review
-    command: str = ""     # command to send to agent
-    artifact: str = ""    # file to check (e.g. "plan.md", "checklist.yaml")
+    name: str = ""        # plan, implement, review, completed
+    label: str = ""       # Plan, Implement, Review, Completed
+    artifact: str = ""    # file to check (e.g. "plan.md")
     gate: str = ""        # gate condition
 
 
 DEFAULT_PIPELINE: List[PipelineStep] = [
-    PipelineStep(
-        name="plan",
-        label="Plan",
-        command=(
-            "Read the Dooray ticket #{ticket}: {title}. "
-            "Analyze requirements and write a detailed implementation plan to "
-            ".board/issues/{ticket}/plan.md"
-        ),
-        artifact="plan.md",
-    ),
-    PipelineStep(
-        name="tc",
-        label="TC",
-        command=(
-            "Based on .board/issues/{ticket}/plan.md, "
-            "write test cases to .board/issues/{ticket}/checklist.yaml"
-        ),
-        artifact="checklist.yaml",
-    ),
-    PipelineStep(
-        name="implement",
-        label="Implement",
-        command=(
-            "Implement the code based on .board/issues/{ticket}/plan.md "
-            "and test cases in .board/issues/{ticket}/checklist.yaml"
-        ),
-        artifact="",
-    ),
-    PipelineStep(
-        name="review",
-        label="Review",
-        command="Review the changes, run tests, and prepare for PR",
-        artifact="",
-    ),
+    PipelineStep(name="plan", label="Plan", artifact="plan.md"),
+    PipelineStep(name="implement", label="Implement", artifact=""),
+    PipelineStep(name="review", label="Review", artifact=""),
+    PipelineStep(name="completed", label="Completed", artifact=""),
 ]
 
 
@@ -187,7 +156,6 @@ class BoardConfig:
                 PipelineStep(
                     name=p.get("name", ""),
                     label=p.get("label", ""),
-                    command=p.get("command", ""),
                     artifact=p.get("artifact", ""),
                     gate=p.get("gate", ""),
                 )
@@ -243,7 +211,6 @@ class BoardConfig:
             {
                 "name": p.name,
                 "label": p.label,
-                "command": p.command,
                 "artifact": p.artifact,
                 **({"gate": p.gate} if p.gate else {}),
             }

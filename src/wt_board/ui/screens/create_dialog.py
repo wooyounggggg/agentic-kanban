@@ -567,3 +567,209 @@ class ThemeDialog(ModalScreen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "theme-btn-cancel":
             self.dismiss(None)
+
+
+# ---------------------------------------------------------------------------
+# Plan 프롬프트 다이얼로그
+# ---------------------------------------------------------------------------
+
+class PlanPromptDialog(ModalScreen):
+    """Plan 단계 — Spec 프롬프트(필수)와 TC 프롬프트(선택) 입력."""
+
+    BINDINGS = [
+        Binding("escape", "cancel", "취소"),
+    ]
+
+    DEFAULT_CSS = f"""
+    PlanPromptDialog {{
+        align: center middle;
+    }}
+    PlanPromptDialog > Vertical {{
+        {_DIALOG_CSS}
+        width: 72;
+        height: auto;
+    }}
+    PlanPromptDialog .dialog-title {{
+        color: #58a6ff;
+        text-style: bold;
+        margin-bottom: 1;
+    }}
+    PlanPromptDialog .dialog-label {{
+        color: #8b949e;
+        margin-top: 1;
+    }}
+    PlanPromptDialog .dialog-hint {{
+        color: #6e7681;
+    }}
+    PlanPromptDialog .btn-row {{
+        margin-top: 1;
+        height: 3;
+    }}
+    """
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Static("Plan 작성", classes="dialog-title")
+            yield Static("Spec 프롬프트 (필수):", classes="dialog-label")
+            yield Input(placeholder="구현할 기능을 설명하세요", id="input-spec")
+            yield Static("TC 프롬프트 (선택):", classes="dialog-label")
+            yield Input(placeholder="테스트 케이스 요구사항 (비워두면 생략)", id="input-tc")
+            with Horizontal(classes="btn-row"):
+                yield Button("실행", variant="primary", id="btn-submit")
+                yield Button("취소", variant="default", id="btn-cancel")
+
+    def on_mount(self) -> None:
+        self.query_one("#input-spec", Input).focus()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-cancel":
+            self.dismiss(None)
+        elif event.button.id == "btn-submit":
+            self._do_submit()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.id == "input-spec":
+            self.query_one("#input-tc", Input).focus()
+        elif event.input.id == "input-tc":
+            self._do_submit()
+
+    def _do_submit(self) -> None:
+        spec = self.query_one("#input-spec", Input).value.strip()
+        if not spec:
+            self.notify("Spec 프롬프트를 입력해주세요.", severity="error")
+            return
+        tc = self.query_one("#input-tc", Input).value.strip()
+        self.dismiss({"spec": spec, "tc": tc})
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
+# ---------------------------------------------------------------------------
+# Implement 확인 다이얼로그
+# ---------------------------------------------------------------------------
+
+class ImplementConfirmDialog(ModalScreen):
+    """Implement 단계 — Plan 기반 구현 시작 확인."""
+
+    BINDINGS = [
+        Binding("escape", "cancel", "취소"),
+        Binding("enter", "confirm", "확인", show=False),
+    ]
+
+    DEFAULT_CSS = f"""
+    ImplementConfirmDialog {{
+        align: center middle;
+    }}
+    ImplementConfirmDialog > Vertical {{
+        {_DIALOG_CSS}
+        width: 56;
+        height: auto;
+    }}
+    ImplementConfirmDialog .dialog-title {{
+        color: #58a6ff;
+        text-style: bold;
+        margin-bottom: 1;
+    }}
+    ImplementConfirmDialog .dialog-message {{
+        color: #c9d1d9;
+        margin-bottom: 1;
+    }}
+    ImplementConfirmDialog .btn-row {{
+        margin-top: 1;
+        height: 3;
+    }}
+    """
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Static("구현 시작", classes="dialog-title")
+            yield Static(
+                "Plan 기반으로 구현을 시작합니다. 실행할까요?",
+                classes="dialog-message",
+            )
+            with Horizontal(classes="btn-row"):
+                yield Button("예", variant="primary", id="btn-yes")
+                yield Button("아니오", variant="default", id="btn-no")
+
+    def on_mount(self) -> None:
+        self.query_one("#btn-yes", Button).focus()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-yes":
+            self.dismiss(True)
+        else:
+            self.dismiss(None)
+
+    def action_confirm(self) -> None:
+        self.dismiss(True)
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
+# ---------------------------------------------------------------------------
+# Review 프롬프트 다이얼로그
+# ---------------------------------------------------------------------------
+
+class ReviewPromptDialog(ModalScreen):
+    """Review 단계 — 수정 프롬프트 입력."""
+
+    BINDINGS = [
+        Binding("escape", "cancel", "취소"),
+    ]
+
+    DEFAULT_CSS = f"""
+    ReviewPromptDialog {{
+        align: center middle;
+    }}
+    ReviewPromptDialog > Vertical {{
+        {_DIALOG_CSS}
+        width: 72;
+        height: auto;
+    }}
+    ReviewPromptDialog .dialog-title {{
+        color: #58a6ff;
+        text-style: bold;
+        margin-bottom: 1;
+    }}
+    ReviewPromptDialog .dialog-label {{
+        color: #8b949e;
+        margin-top: 1;
+    }}
+    ReviewPromptDialog .btn-row {{
+        margin-top: 1;
+        height: 3;
+    }}
+    """
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Static("수정 요청", classes="dialog-title")
+            yield Static("수정 프롬프트:", classes="dialog-label")
+            yield Input(placeholder="수정할 내용을 설명하세요", id="input-review")
+            with Horizontal(classes="btn-row"):
+                yield Button("실행", variant="primary", id="btn-submit")
+                yield Button("취소", variant="default", id="btn-cancel")
+
+    def on_mount(self) -> None:
+        self.query_one("#input-review", Input).focus()
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-cancel":
+            self.dismiss(None)
+        elif event.button.id == "btn-submit":
+            self._do_submit()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        self._do_submit()
+
+    def _do_submit(self) -> None:
+        review = self.query_one("#input-review", Input).value.strip()
+        if not review:
+            self.notify("수정 프롬프트를 입력해주세요.", severity="error")
+            return
+        self.dismiss({"review": review})
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)

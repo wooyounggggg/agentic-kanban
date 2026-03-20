@@ -48,12 +48,14 @@ class BoardScreen(Screen):
         Binding("m", "move_card", "Move"),
         Binding("s", "sync", "Sync"),
         Binding("T", "theme", "Theme"),
+        Binding("h", "toggle_completed", "완료토글"),
         Binding("x", "delete_item", "Delete"),
         Binding("/", "search", "Search"),
-        Binding("left,h", "col_left", "Left", show=False),
-        Binding("right,l", "col_right", "Right", show=False),
+        Binding("left", "col_left", "Left", show=False),
+        Binding("right", "col_right", "Right", show=False),
         Binding("up,k", "card_up", "Up", show=False),
         Binding("down,j", "card_down", "Down", show=False),
+        Binding("escape", "exit_move_mode", "Exit", show=False),
     ]
 
     def _build_agent_service(self):
@@ -86,6 +88,8 @@ class BoardScreen(Screen):
     card_index: reactive[int] = reactive(0)
     _sidebar_focused: bool = False
     _sidebar_index: int = 0
+    _move_mode: bool = False
+    _show_completed: bool = False
 
     def __init__(self, board_path: Optional[str] = None, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -153,6 +157,8 @@ class BoardScreen(Screen):
                     pass
 
             for issue in all_issues:
+                if issue.pipeline_step == "completed" and not self._show_completed:
+                    continue
                 self._issues_by_status.setdefault(issue.status, []).append(issue)
 
         except Exception:
@@ -258,6 +264,9 @@ class BoardScreen(Screen):
         return start  # stay put if nothing found
 
     def action_col_left(self) -> None:
+        if self._move_mode:
+            self._move_issue_to_adjacent_status(-1)
+            return
         cols = self._columns()
         if not cols:
             return
@@ -271,6 +280,9 @@ class BoardScreen(Screen):
         self._highlight_current()
 
     def action_col_right(self) -> None:
+        if self._move_mode:
+            self._move_issue_to_adjacent_status(+1)
+            return
         if self._sidebar_focused:
             # 사이드바 → 보드로 복귀
             self._exit_sidebar()
@@ -534,50 +546,70 @@ class BoardScreen(Screen):
             self.notify(f"에이전트 오류: {exc}", severity="error")
 
     def action_move_card(self) -> None:
+        """m키 — 이동 모드 토글."""
+        if self._move_mode:
+            self._exit_move_mode()
+            return
         issue = self._current_issue()
         if issue is None:
-            self.notify("No issue selected.", severity="warning")
+            self.notify("이슈를 선택해주세요.", severity="warning")
             return
-
-        # Build list of valid target statuses
-        if self._config.transitions:
-            allowed_names = self._config.transitions.get(issue.status, [])
-            targets = [s for s in self._statuses if s.name in allowed_names]
-        else:
-            targets = [s for s in self._statuses if s.name != issue.status]
-
-        if not targets:
-            self.notify("이동 가능한 상태가 없습니다.", severity="warning")
-            return
-
-        from wt_board.ui.screens.create_dialog import MoveDialog
-
-        def on_result(new_status: Optional[str]) -> None:
-            if new_status is None:
-                return
-            if self._store is None:
-                self.notify("저장소가 연결되어 있지 않습니다.", severity="error")
-                return
-            try:
-                from wt_board.services.issue_service import IssueService
-                svc = IssueService(self._store, self._config)
-                svc.move_issue(issue.ticket, new_status)
-                self._refresh_board()
-                self.notify(
-                    f"[cyan]#{issue.ticket}[/] → [bold]{new_status}[/] 이동 완료.",
-                    severity="information",
-                )
-            except Exception as exc:
-                self.notify(f"이동 실패: {exc}", severity="error")
-
-        self.app.push_screen(
-            MoveDialog(
-                ticket=issue.ticket,
-                current_status=issue.status,
-                target_statuses=targets,
-            ),
-            callback=on_result,
+        self._move_mode = True
+        self.notify(
+            "이동 모드: ←→ 로 상태 변경, Esc 또는 m 취소",
+            severity="information",
         )
+
+    def action_exit_move_mode(self) -> None:
+        """Esc — 이동 모드 종료."""
+        if self._move_mode:
+            self._exit_move_mode()
+
+    def _exit_move_mode(self) -> None:
+        self._move_mode = False
+        self.notify("이동 모드 종료.", severity="information")
+
+    def _move_issue_to_adjacent_status(self, direction: int) -> None:
+        """이동 모드에서 ←/→ 로 이슈를 인접 상태로 이동."""
+        issue = self._current_issue()
+        if issue is None:
+            return
+        if self._store is None:
+            self.notify("저장소가 연결되어 있지 않습니다.", severity="error")
+            return
+
+        status_names = [s.name for s in self._statuses]
+        try:
+            current_idx = status_names.index(issue.status)
+        except ValueError:
+            return
+
+        new_idx = current_idx + direction
+        if new_idx < 0 or new_idx >= len(status_names):
+            self.notify("더 이상 이동할 수 없습니다.", severity="warning")
+            return
+
+        new_status = status_names[new_idx]
+        try:
+            from wt_board.services.issue_service import IssueService
+            svc = IssueService(self._store, self._config)
+            svc.move_issue(issue.ticket, new_status)
+            self._refresh_board()
+            self.notify(
+                f"[cyan]#{issue.ticket}[/] → [bold]{new_status}[/]",
+                severity="information",
+            )
+        except Exception as exc:
+            self.notify(f"이동 실패: {exc}", severity="error")
+
+    def action_toggle_completed(self) -> None:
+        """h키 — 완료(completed) 이슈 표시/숨기기 토글."""
+        self._show_completed = not self._show_completed
+        self._refresh_board()
+        if self._show_completed:
+            self.notify("완료 이슈 표시.", severity="information")
+        else:
+            self.notify("완료 이슈 숨김.", severity="information")
 
     def action_sync(self) -> None:
         sync_service = self._get_sync_service()

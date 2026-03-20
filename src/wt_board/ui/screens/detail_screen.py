@@ -234,38 +234,106 @@ class DetailScreen(Screen):
         self.app.pop_screen()
 
     def action_advance_pipeline(self) -> None:
-        """m → 다음 파이프라인 단계로 이동."""
+        """m키 — 현재 단계에 맞는 다이얼로그 표시."""
         if self._pipeline_service is None:
             self.notify("파이프라인 서비스가 없습니다.", severity="warning")
             return
-        try:
-            ok, reason = self._pipeline_service.advance(self.issue.ticket)
-            if ok:
-                # Reload issue to get updated pipeline_step
-                if self._store:
-                    self.issue = self._store.read_issue(self.issue.ticket)
-                self._update_pipeline_header()
-                self.notify(reason, severity="information")
-            else:
-                self.notify(reason, severity="warning")
-        except Exception as exc:
-            self.notify(f"파이프라인 오류: {exc}", severity="error")
+        current = self._pipeline_service.current_step(self.issue.ticket)
+
+        if current.name == "plan":
+            self._show_plan_dialog()
+        elif current.name == "implement":
+            self._show_implement_confirm()
+        elif current.name == "review":
+            self._show_review_dialog()
+        elif current.name == "completed":
+            self.notify("최종 단계입니다.", severity="information")
+        else:
+            self.notify(f"알 수 없는 단계: {current.name}", severity="warning")
+
+    def _show_plan_dialog(self) -> None:
+        from wt_board.ui.screens.create_dialog import PlanPromptDialog
+
+        def on_result(result) -> None:
+            if result is None:
+                return
+            spec = result["spec"]
+            tc = result.get("tc", "")
+            ticket = self.issue.ticket
+            prompt = (
+                f"아래 요구사항을 기반으로 .board/issues/{ticket}/plan.md에 "
+                f"구현 계획을 작성하세요.\n{spec}"
+            )
+            if tc:
+                prompt += (
+                    f"\n\n테스트 케이스를 .board/issues/{ticket}/checklist.yaml에 "
+                    f"작성하세요.\n{tc}"
+                )
+            if self._agent_service:
+                self._agent_service.resume_agent(ticket)
+                self._agent_service.send_command(ticket, prompt)
+                self.notify("Plan 작성을 시작합니다.", severity="information")
+
+        self.app.push_screen(PlanPromptDialog(), callback=on_result)
+
+    def _show_implement_confirm(self) -> None:
+        # Gate check: plan.md must exist
+        ok, reason = self._pipeline_service.can_advance(self.issue.ticket)
+        if not ok:
+            self.notify(reason, severity="warning")
+            return
+
+        from wt_board.ui.screens.create_dialog import ImplementConfirmDialog
+
+        def on_result(confirmed) -> None:
+            if not confirmed:
+                return
+            ticket = self.issue.ticket
+            prompt = (
+                f".board/issues/{ticket}/plan.md를 기반으로 구현을 시작하세요.\n"
+                f"작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
+            )
+            if self._agent_service:
+                self._agent_service.resume_agent(ticket)
+                self._agent_service.send_command(ticket, prompt)
+            # Advance pipeline step to implement (already checked gate above)
+            self._pipeline_service.advance(self.issue.ticket)
+            if self._store:
+                self.issue = self._store.read_issue(self.issue.ticket)
+            self._update_pipeline_header()
+            self.notify("구현을 시작합니다.", severity="information")
+
+        self.app.push_screen(ImplementConfirmDialog(), callback=on_result)
+
+    def _show_review_dialog(self) -> None:
+        from wt_board.ui.screens.create_dialog import ReviewPromptDialog
+
+        def on_result(result) -> None:
+            if result is None:
+                return
+            review = result["review"]
+            ticket = self.issue.ticket
+            prompt = (
+                f"아래 수정 요청을 반영하세요.\n{review}\n"
+                f"작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
+            )
+            if self._agent_service:
+                self._agent_service.resume_agent(ticket)
+                self._agent_service.send_command(ticket, prompt)
+                self.notify("수정 작업을 시작합니다.", severity="information")
+
+        self.app.push_screen(ReviewPromptDialog(), callback=on_result)
 
     def action_rerun_pipeline(self) -> None:
-        """r → 현재 단계 재실행."""
+        """r → 현재 단계 재실행 (에이전트에 현재 단계 컨텍스트 재전송)."""
         if self._pipeline_service is None:
             self.notify("파이프라인 서비스가 없습니다.", severity="warning")
             return
-        try:
-            self._pipeline_service.rerun(self.issue.ticket)
-            if self._pipeline_service:
-                current = self._pipeline_service.current_step(self.issue.ticket)
-                self.notify(
-                    f"{current.label} 단계를 에이전트에 재전송했습니다.",
-                    severity="information",
-                )
-        except Exception as exc:
-            self.notify(f"재실행 오류: {exc}", severity="error")
+        current = self._pipeline_service.current_step(self.issue.ticket)
+        self.notify(
+            f"{current.label} 단계를 재실행하려면 m키를 눌러 다이얼로그에서 실행하세요.",
+            severity="information",
+        )
 
     def action_focus_agent(self) -> None:
         """a → 에이전트 tmux window로 포커스 전환."""
