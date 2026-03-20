@@ -38,12 +38,15 @@ class AgentService:
         wt_path = self._resolve_worktree_path(ticket)
         binary = self._config.agent.binary
 
-        # Popen으로 PID 추적 가능하게
+        # stdout을 실시간 로그 파일에 기록
+        log_path = self._store.issue_dir(ticket) / "agent.log"
+        log_file = open(log_path, "w", encoding="utf-8")
+
         proc = subprocess.Popen(
             [binary, "--print", "--dangerously-skip-permissions", prompt],
             cwd=wt_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=log_file,
+            stderr=subprocess.STDOUT,
             text=True,
         )
 
@@ -56,8 +59,9 @@ class AgentService:
 
         def _worker():
             try:
-                stdout, stderr = proc.communicate(timeout=600)
-                output = stdout.strip()
+                proc.wait(timeout=600)
+                log_file.close()
+                output = log_path.read_text(encoding="utf-8").strip()
 
                 self._save_worklog(ticket, prompt, output)
 

@@ -341,12 +341,25 @@ class DetailScreen(Screen):
         self.notify(f"#{ticket} 에이전트 작업 완료.", severity="information")
 
     def action_agent_status(self) -> None:
-        """a키 — 에이전트 상태 확인."""
-        if self._agent_service:
-            status = self._agent_service.get_status_text(self.issue.ticket)
-            self.notify(f"에이전트: {status}", severity="information")
-        else:
+        """a키 — 에이전트 상태 + 실시간 로그 확인."""
+        if not self._agent_service:
             self.notify("에이전트 서비스 없음.", severity="warning")
+            return
+        status = self._agent_service.get_status_text(self.issue.ticket)
+        # agent.log 마지막 몇 줄 표시
+        log_path = self._store.issue_dir(self.issue.ticket) / "agent.log" if self._store else None
+        log_preview = ""
+        if log_path and log_path.exists():
+            try:
+                lines = log_path.read_text(encoding="utf-8").strip().split("\n")
+                last_lines = lines[-3:] if len(lines) > 3 else lines
+                log_preview = "\n".join(last_lines)
+            except Exception:
+                pass
+        msg = f"에이전트: {status}"
+        if log_preview:
+            msg += f"\n\n최근 출력:\n{log_preview}"
+        self.notify(msg, severity="information", timeout=5)
 
     def action_toggle_plan(self) -> None:
         try:
