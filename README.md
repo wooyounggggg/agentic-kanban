@@ -2,7 +2,7 @@
 
 AI 에이전트 기반 파이프라인 실행을 지원하는 TUI 칸반보드.
 
-Git worktree 기반 병렬 개발 워크플로우를 관리합니다.
+Git worktree 기반 병렬 개발 워크플로우를 관리합니다. [NHN Dooray](https://dooray.com) 이슈 트래커와 연동되며, [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI를 에이전트로 사용합니다.
 
 ![Board Screenshot](docs/screenshot-board.svg)
 
@@ -11,13 +11,20 @@ Git worktree 기반 병렬 개발 워크플로우를 관리합니다.
 - **파이프라인 실행**: Plan → Implement → Review → Completed
 - **AI 에이전트**: Claude CLI를 백그라운드로 실행, 실시간 스트리밍 로그
 - **칸반보드**: 이슈 상태 관리, 마우스/키보드 네비게이션
-- **Dooray 연동**: 티켓 조회, 댓글, 자동 폴링
+- **Dooray 연동**: 티켓 조회, 댓글, 자동 폴링 (60초 주기)
 - **멀티 프로젝트**: 사이드바에서 프로젝트 전환
 - **테마**: 8가지 컬러 테마 (brown, catppuccin, nord 등)
+
+## 요구사항
+
+- Python 3.9+
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) (`claude` 명령)
+- [NHN Dooray](https://dooray.com) 계정 + API key (이슈 연동 시)
 
 ## 설치
 
 ```bash
+cd agentic-kanban
 pip install -e .
 ```
 
@@ -25,8 +32,13 @@ pip install -e .
 
 ```bash
 cd <프로젝트 디렉토리>
-agentic-kanban init  # 최초 1회 (.board/ 생성)
-agentic-kanban       # TUI 실행
+agentic-kanban init    # 최초 1회 (.board/ 생성 + Dooray API key 설정)
+agentic-kanban         # TUI 실행
+```
+
+또는 pip 설치 없이:
+```bash
+PYTHONPATH=agentic-kanban/src python3 -m agentic_kanban.cli.main
 ```
 
 ## 파이프라인
@@ -54,13 +66,13 @@ Plan 기반 자동 구현. 확인 후 에이전트가 코드를 작성합니다.
 |---|---|
 | Enter | 이슈 상세 |
 | r | 파이프라인 실행 (상태별 다이얼로그) |
-| n | 새 이슈 추가 |
+| n | 새 이슈 추가 (Dooray 티켓번호 조회) |
 | m | 상태 이동 |
 | x | 이슈 삭제 |
 | v | 완료 이슈 토글 |
 | T | 테마 변경 |
 | ? | 도움말 |
-| ←→↑↓ | 네비게이션 (hjkl도 가능) |
+| ←→↑↓ | 네비게이션 (hjkl 지원) |
 | q (x2) | 종료 |
 
 ### 상세 화면
@@ -68,12 +80,12 @@ Plan 기반 자동 구현. 확인 후 에이전트가 코드를 작성합니다.
 |---|---|
 | r | 파이프라인 실행 |
 | m | 상태 이동 |
-| a | Agent 로그 토글 |
+| a | Agent 로그 토글 (실시간 스트리밍) |
 | p | Plan 토글 |
-| t | Ticket 토글 |
-| c | Comments 토글 |
+| t | Ticket 토글 (Dooray 본문) |
+| c | Comments 토글 (Dooray 댓글) |
 | l | Worklog 토글 |
-| f | Dooray 조회 |
+| f | Dooray 조회 (본문 + 댓글) |
 | Space | TC 체크 토글 |
 | Esc | 뒤로 |
 
@@ -87,13 +99,13 @@ brown, catppuccin, nord, github-dark, dracula, solarized-dark, gruvbox, tokyo-ni
 
 ```
 .board/
-├── config.yaml          # 프로젝트 설정
+├── config.yaml          # 프로젝트 설정 (Dooray API key, 테마 등)
 ├── issues/
 │   └── {ticket}/
 │       ├── issue.yaml     # 이슈 메타데이터
-│       ├── plan.md        # 구현 계획
+│       ├── plan.md        # 구현 계획 (에이전트 작성)
 │       ├── checklist.yaml # TC 체크리스트
-│       ├── worklog.jsonl  # 작업 로그
+│       ├── worklog.jsonl  # 작업 로그 (에이전트 자동 기록)
 │       ├── agent.log      # 에이전트 실시간 로그
 │       ├── description.md # Dooray 본문
 │       └── comments.md    # Dooray 댓글
