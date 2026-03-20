@@ -530,7 +530,8 @@ class BoardScreen(Screen):
                 self._refresh_board()
                 self.notify(f"이슈 [cyan]#{ticket}[/] 생성 완료.", severity="information")
 
-        self.app.push_screen(CreateDialog(tracker=tracker), callback=on_result)
+        existing = self._store.list_issues() if self._store else []
+        self.app.push_screen(CreateDialog(tracker=tracker, existing_tickets=existing), callback=on_result)
 
     def action_start_agent(self) -> None:
         issue = self._current_issue()

@@ -83,23 +83,22 @@ class CreateDialog(ModalScreen):
     }}
     """
 
-    def __init__(self, tracker=None, **kwargs) -> None:
+    def __init__(self, tracker=None, existing_tickets=None, **kwargs) -> None:
         super().__init__(**kwargs)
-        self._tracker = tracker  # Optional[TrackerPlugin]
+        self._tracker = tracker
+        self._existing = set(existing_tickets or [])
         self._fetched_title = ""
         self._fetched_desc = ""
         self._fetched_assignee = ""
-        self._fetched_status = ""
 
     def compose(self) -> ComposeResult:
         with Vertical():
             yield Static("새 이슈 추가", classes="dialog-title")
             yield Static("Dooray 티켓 번호:", classes="dialog-label")
-            with Horizontal():
-                yield Input(placeholder="예: 3399", id="input-ticket")
-                yield Button("조회", variant="primary", id="btn-lookup")
+            yield Input(placeholder="예: 3399", id="input-ticket")
             yield Static("", id="preview-area", classes="preview-box")
             with Horizontal(classes="btn-row"):
+                yield Button("조회", variant="primary", id="btn-lookup")
                 yield Button("생성", variant="success", id="btn-create")
                 yield Button("취소", variant="default", id="btn-cancel")
 
@@ -127,18 +126,18 @@ class CreateDialog(ModalScreen):
         preview = self.query_one("#preview-area", Static)
         btn_create = self.query_one("#btn-create", Button)
 
+        # 중복 체크
+        if ticket in self._existing:
+            preview.update(f"[red]#{ticket} — 이미 등록된 이슈입니다.[/]")
+            return
+
         if self._tracker is None:
-            # No tracker — allow manual creation
-            preview.update(
-                f"[dim]트래커 미연결 — 수동으로 생성합니다.[/]\n"
-                f"[bold cyan]#{ticket}[/]"
-            )
+            preview.update(f"[bold cyan]#{ticket}[/]  (트래커 미연결)")
             self._fetched_title = ""
             btn_create.add_class("visible")
             btn_create.focus()
             return
 
-        # Fetch from Dooray
         preview.update("[dim]조회 중...[/]")
         try:
             result = self._tracker.get_issue(ticket)
@@ -153,17 +152,8 @@ class CreateDialog(ModalScreen):
         self._fetched_title = result.title
         self._fetched_desc = result.description
         self._fetched_assignee = result.assignee
-        self._fetched_status = result.status
 
-        desc_preview = result.description[:200] + "..." if len(result.description) > 200 else result.description
-        desc_preview = desc_preview.replace("\n", " ") if desc_preview else "(본문 없음)"
-
-        preview.update(
-            f"[bold cyan]#{ticket}[/]  {result.title}\n"
-            f"[dim]상태:[/] {result.status}    "
-            f"[dim]담당:[/] {result.assignee or '미지정'}\n"
-            f"[dim]내용:[/] {desc_preview}"
-        )
+        preview.update(f"[bold cyan]#{ticket}[/]  {result.title}")
         btn_create.add_class("visible")
         btn_create.focus()
 
