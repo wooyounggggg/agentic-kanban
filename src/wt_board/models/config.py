@@ -33,10 +33,10 @@ class StatusDef:
 
 
 DEFAULT_STATUSES = [
-    StatusDef(name="plan", label="Plan", icon=""),
-    StatusDef(name="implement", label="Implement", icon=""),
-    StatusDef(name="review", label="Review", icon=""),
-    StatusDef(name="completed", label="Completed", icon="", terminal=True),
+    StatusDef(name="plan", label="📝 Plan", icon="📝"),
+    StatusDef(name="implement", label="🔨 Implement", icon="🔨"),
+    StatusDef(name="review", label="🔍 Review", icon="🔍"),
+    StatusDef(name="completed", label="✅ Completed", icon="✅", terminal=True),
 ]
 
 
