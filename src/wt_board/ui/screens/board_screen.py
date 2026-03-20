@@ -173,16 +173,20 @@ class BoardScreen(Screen):
 
         board.remove_children()
 
-        for col_idx, status_def in enumerate(self._statuses):
+        visible_col = 0
+        for status_def in self._statuses:
+            if status_def.terminal and not self._show_completed:
+                continue
             issues = self._issues_by_status.get(status_def.name, [])
             col = KanbanColumn(
                 status_def=status_def,
                 issues=issues,
                 tc_map=self._tc_map,
                 agent_map=self._agent_map,
-                selected_index=0 if (col_idx == self.col_index and issues) else -1,
+                selected_index=0 if (visible_col == self.col_index and issues) else -1,
             )
             board.mount(col)
+            visible_col += 1
 
     def _refresh_board(self) -> None:
         """Reload data and rebuild the board UI."""
