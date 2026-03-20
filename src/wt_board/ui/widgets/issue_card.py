@@ -72,8 +72,8 @@ class IssueCard(Static):
         if len(title) > _MAX_TITLE:
             title = title[:_MAX_TITLE - 1] + "\u2026"
 
-        # Line 1: ticket + title + agent alive indicator
-        alive_badge = " [bold #8fac6e]●[/]" if self._agent_alive else ""
+        # Line 1: ticket + title + agent running indicator
+        alive_badge = " [bold #8fac6e]⟳ 실행중[/]" if self._agent_alive else ""
         line1 = f"[bold #d4a57a]#{ticket}[/] {title}{alive_badge}"
 
         # Line 2: Dooray status chip + assignee + TC + tags
