@@ -77,9 +77,11 @@ class KanbanColumn(Vertical):
 
     def compose(self) -> ComposeResult:
         count = len(self.issues)
-        color = self._COL_COLORS.get(self.status_def.name, "white")
+        color = self._COL_COLORS.get(self.status_def.name, "#3a3430")
         label = self.status_def.label
-        yield Static(f"[on {color}] [bold white]{label}[/bold white] [/] [dim]({count})[/]", classes="col-header")
+        header = Static(f"[bold white]{label}[/bold white]  [dim white]({count})[/]", classes="col-header")
+        header.styles.background = color
+        yield header
 
         if not self.issues:
             yield Static("[dim]— empty —[/]", classes="col-empty")
