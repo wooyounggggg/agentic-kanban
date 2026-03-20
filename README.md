@@ -16,7 +16,7 @@
 
 ---
 
-![Board Screenshot](docs/screenshot-board.svg)
+![Board Screenshot](docs/demo.svg)
 
 ## Why agentic-kanban?
 
