@@ -799,7 +799,7 @@ class ConfirmDialog(ModalScreen):
         border: double #58a6ff;
         padding: 1 2;
         width: 50;
-        height: 7;
+        height: 10;
     }}
     ConfirmDialog .dialog-title {{
         color: #c47070;
