@@ -164,9 +164,8 @@ class DetailScreen(Screen):
         parts = []
         for entry in reversed(self._worklog):  # 최신 먼저
             at = format_short_date(entry.at) if entry.at else ""
-            author = entry.author or "unknown"
             body = entry.work_done or "(내용 없음)"
-            section = f"### {at}  ({author})\n\n{body}"
+            section = f"### {at}\n\n{body}"
             if entry.next_action:
                 section += f"\n\n> → {entry.next_action}"
             parts.append(section)
@@ -182,25 +181,29 @@ class DetailScreen(Screen):
         parts = []
         for step, status in steps:
             if status == "done":
-                parts.append(f"[green]{step.label} ✓[/]")
+                parts.append(f"[on green black] {step.label} ✓ [/]")
             elif status == "active":
-                parts.append(f"[cyan]{step.label} ●[/]")
+                parts.append(f"[on cyan black] {step.label} ● [/]")
             else:
-                parts.append(f"[dim]{step.label}[/]")
-        return "  ".join(parts)
+                parts.append(f"[on #3a3430] {step.label} [/]")
+        return " ".join(parts)
+
+    def _status_chip(self) -> str:
+        """현재 상태를 chip으로 렌더링."""
+        status = self.issue.status
+        color = _STATUS_COLOR.get(status, "white")
+        return f"[on {color} black] {status} [/]"
 
     def _update_pipeline_header(self) -> None:
         from rich.markup import escape
-        status_color = _STATUS_COLOR.get(self.issue.status, "white")
         safe_title = escape(self.issue.title)
-        pipeline_bar = self._pipeline_bar()
-        pipeline_part = f"  {pipeline_bar}" if pipeline_bar else ""
-        markup = (
-            f"[bold cyan]#{self.issue.ticket}[/]  "
-            f"{safe_title}  "
-            f"[{status_color}]{self.issue.status}[/{status_color}]"
-            f"{pipeline_part}"
-        )
+        chip = self._status_chip()
+        pipeline = self._pipeline_bar()
+        # 1줄: 티켓번호 + 상태 chip + 제목
+        # 2줄: 파이프라인 진행 바
+        line1 = f"[bold cyan]#{self.issue.ticket}[/]  {chip}  {safe_title}"
+        line2 = pipeline if pipeline else ""
+        markup = f"{line1}\n{line2}" if line2 else line1
         try:
             self.query_one("#detail-header", Static).update(markup)
         except Exception:
@@ -214,13 +217,9 @@ class DetailScreen(Screen):
         yield Header()
 
         from rich.markup import escape
-        status_color = _STATUS_COLOR.get(self.issue.status, "white")
         safe_title = escape(self.issue.title)
-        title_markup = (
-            f"[bold cyan]#{self.issue.ticket}[/]  "
-            f"{safe_title}  "
-            f"[{status_color}]{self.issue.status}[/{status_color}]"
-        )
+        chip = self._status_chip()
+        title_markup = f"[bold cyan]#{self.issue.ticket}[/]  {chip}  {safe_title}"
 
         with VerticalScroll(id="detail-panel"):
             yield Static(title_markup, id="detail-header")
