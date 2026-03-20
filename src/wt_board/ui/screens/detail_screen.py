@@ -286,7 +286,8 @@ class DetailScreen(Screen):
             context = result.get("context", "")
             tc = result.get("tc", "")
             ticket = self.issue.ticket
-            prompt = f"아래 요구사항을 기반으로 .board/issues/{ticket}/plan.md에 구현 계획을 작성하세요.\n{spec}"
+            issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
+            prompt = f"아래 요구사항을 기반으로 {issue_dir}/plan.md에 구현 계획을 작성하세요.\n{spec}"
             if context:
                 prompt += f"\n\n참고 지식:\n{context}"
             if tc:
@@ -313,9 +314,10 @@ class DetailScreen(Screen):
             if not confirmed:
                 return
             ticket = self.issue.ticket
+            issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
             prompt = (
-                f".board/issues/{ticket}/plan.md를 기반으로 구현을 시작하세요.\n"
-                f"작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
+                f"{issue_dir}/plan.md를 기반으로 구현을 시작하세요.\n"
+                f"작업 완료 후 {issue_dir}/worklog.jsonl에 기록하세요."
             )
             if self._agent_service:
                 def _on_agent_done(t, output):
@@ -339,9 +341,10 @@ class DetailScreen(Screen):
                 return
             review = result["review"]
             ticket = self.issue.ticket
+            issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
             prompt = (
                 f"아래 수정 요청을 반영하세요.\n{review}\n"
-                f"작업 완료 후 .board/issues/{ticket}/worklog.jsonl에 기록하세요."
+                f"작업 완료 후 {issue_dir}/worklog.jsonl에 기록하세요."
             )
             if self._agent_service:
                 def _on_agent_done(t, output):
