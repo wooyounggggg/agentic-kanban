@@ -29,11 +29,19 @@ class WtBoardApp(App):
     def _apply_startup_theme(self) -> None:
         """Apply the saved theme before Textual loads CSS."""
         try:
-            from agentic_kanban.store.board_store import find_board_root
             from agentic_kanban.models.config import BoardConfig
+            from agentic_kanban.models.projects import ProjectRegistry
             from agentic_kanban.ui.themes import apply_theme
-            bp = find_board_root()
-            if bp:
+            from pathlib import Path
+            # current 프로젝트 우선, 없으면 CWD
+            reg = ProjectRegistry.load()
+            entry = reg.get_current()
+            if entry and entry.path:
+                bp = Path(entry.path) / ".board"
+            else:
+                from agentic_kanban.store.board_store import find_board_root
+                bp = find_board_root()
+            if bp and (bp / "config.yaml").exists():
                 config = BoardConfig.from_yaml(bp / "config.yaml")
                 apply_theme(config.ui.theme)
         except Exception:
