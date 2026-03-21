@@ -697,8 +697,6 @@ class BoardScreen(Screen):
                 prompt = build_implement_prompt(issue_dir)
                 if agent_svc:
                     agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)
-                pipeline_svc.advance(ticket)
-                self._refresh_board(focus_ticket=ticket)
                 self.notify(f"#{ticket} 구현 실행 중...", severity="information")
             self.app.push_screen(ImplementConfirmDialog(), callback=on_result)
 

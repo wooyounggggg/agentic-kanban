@@ -322,11 +322,6 @@ class DetailScreen(Screen):
                     self.app.call_from_thread(self._on_agent_complete, t)
 
                 self._agent_service.run_prompt(ticket, prompt, on_complete=_on_agent_done)
-            # Advance pipeline step to implement (already checked gate above)
-            self._pipeline_service.advance(self.issue.ticket)
-            if self._store:
-                self.issue = self._store.read_issue(self.issue.ticket)
-            self._update_pipeline_header()
             self.notify("구현을 시작합니다.", severity="information")
 
         self.app.push_screen(ImplementConfirmDialog(), callback=on_result)
