@@ -349,12 +349,18 @@ class BoardScreen(Screen):
         self._sidebar_focused = False
         try:
             sidebar = self.query_one("#sidebar", Sidebar)
+            # current_project를 현재 활성 프로젝트로 갱신
+            sidebar.current_project = self._registry.current
             sidebar.set_focused_mode(False)
         except Exception:
             pass
         self.col_index = self._next_nonempty_col(-1, +1)
         self.card_index = 0
-        self._highlight_current()
+        self.set_timer(0.05, self._highlight_current)
+        # 빈 프로젝트면 안내
+        total = sum(len(v) for v in self._issues_by_status.values())
+        if total == 0:
+            self.notify(f"프로젝트 '{self._registry.current}' — 이슈가 없습니다. n키로 추가하세요.", severity="information")
 
     def _switch_to_sidebar_project(self) -> None:
         """↑↓로 사이드바 프로젝트를 이동하면 즉시 전환."""
