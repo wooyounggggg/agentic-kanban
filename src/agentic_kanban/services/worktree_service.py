@@ -20,6 +20,9 @@ class WorktreeService:
 
     def _worktree_path(self, ticket: str) -> Path:
         base = self._config.project.worktree_base
+        base_path = Path(base).expanduser()
+        if base_path.is_absolute():
+            return base_path / f"feature-{ticket}"
         return self._root / base / f"feature-{ticket}"
 
     def _branch_name(self, ticket: str) -> str:

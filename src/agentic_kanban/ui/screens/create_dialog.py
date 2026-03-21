@@ -281,7 +281,7 @@ class AddProjectDialog(ModalScreen):
     AddProjectDialog > Vertical {{
         {_DIALOG_CSS}
         width: 65;
-        max-height: 24;
+        max-height: 28;
     }}
     AddProjectDialog .dialog-title {{
         color: #58a6ff;
@@ -308,8 +308,8 @@ class AddProjectDialog(ModalScreen):
             yield Static("프로젝트 루트 경로:", classes="dialog-label")
             yield Input(placeholder=cwd, value=cwd, id="input-path")
 
-            yield Static("Worktree 디렉토리 (프로젝트 루트 기준 상대 경로):", classes="dialog-label")
-            yield Input(placeholder="worktrees", value="worktrees", id="input-wt-base")
+            yield Static("Worktree 디렉토리 (절대경로 또는 상대경로):", classes="dialog-label")
+            yield Input(placeholder="~/worktrees/my-project 또는 worktrees", value="", id="input-wt-base")
 
             yield Static("Dooray Project ID:", classes="dialog-label")
             yield Input(placeholder="예: 3939952010186161882", id="input-dooray-pid")

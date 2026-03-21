@@ -204,7 +204,11 @@ class AgentService:
                 return str(candidate.resolve())
         project_root = self._store.root.parent
         base = self._config.project.worktree_base
-        fallback = project_root / base / f"feature-{ticket}"
+        base_path = Path(base).expanduser()
+        if base_path.is_absolute():
+            fallback = base_path / f"feature-{ticket}"
+        else:
+            fallback = project_root / base / f"feature-{ticket}"
         return str(fallback.resolve()) if fallback.exists() else str(project_root)
 
     def is_running(self, ticket: str) -> bool:
