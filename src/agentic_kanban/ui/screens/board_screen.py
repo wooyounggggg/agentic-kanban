@@ -629,11 +629,8 @@ class BoardScreen(Screen):
         # config에 먼저 저장 (_load_data가 읽기 전에)
         try:
             if self._store:
-                from agentic_kanban.store.board_store import find_board_root
-                bp = find_board_root()
-                if bp:
-                    self._config.ui.show_completed = self._show_completed
-                    self._config.to_yaml(bp / "config.yaml")
+                self._config.ui.show_completed = self._show_completed
+                self._config.to_yaml(self._store.root / "config.yaml")
         except Exception:
             pass
         self._refresh_board()
@@ -743,11 +740,9 @@ class BoardScreen(Screen):
             # Save to config
             try:
                 if self._store is not None:
-                    from agentic_kanban.store.board_store import find_board_root
-                    board_path = find_board_root()
-                    if board_path is not None:
+                    if self._store:
                         self._config.ui.theme = name
-                        self._config.to_yaml(board_path / "config.yaml")
+                        self._config.to_yaml(self._store.root / "config.yaml")
             except Exception:
                 pass
 
