@@ -110,20 +110,16 @@ class BoardConfig:
             )
 
         # Statuses
-        # 기본 이모지 매핑
-        _default_icons = {d.name: d.icon for d in DEFAULT_STATUSES}
-        _default_labels = {d.name: d.label for d in DEFAULT_STATUSES}
-
         raw_statuses = data.get("statuses")
         if raw_statuses:
             statuses = []
             for s in raw_statuses:
                 name = s.get("name", "")
-                icon = s.get("icon", "") or _default_icons.get(name, "")
-                label = s.get("label", "")
-                # label에 이모지가 없으면 기본 label 사용
+                icon = s.get("icon", "")
+                label = s.get("label", name.capitalize())
+                # label에 이모지가 없으면 icon을 뒤에 붙이기
                 if icon and icon not in label:
-                    label = _default_labels.get(name, label)
+                    label = f"{label} {icon}"
                 statuses.append(StatusDef(
                     name=name,
                     label=label,
