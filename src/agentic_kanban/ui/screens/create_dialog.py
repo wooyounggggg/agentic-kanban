@@ -583,7 +583,7 @@ class ThemeDialog(ModalScreen):
 # ---------------------------------------------------------------------------
 
 class PlanPromptDialog(ModalScreen):
-    """Plan 단계 — Spec 프롬프트(필수)와 TC 프롬프트(선택) 입력."""
+    """Plan 단계 — Plan 프롬프트(필수)와 TC 프롬프트(선택) 입력."""
 
     BINDINGS = [
         Binding("escape", "cancel", "취소"),
@@ -623,7 +623,7 @@ class PlanPromptDialog(ModalScreen):
     def compose(self) -> ComposeResult:
         with Vertical():
             yield Static("Plan 작성", classes="dialog-title")
-            yield Static("Spec 프롬프트 (필수):", classes="dialog-label")
+            yield Static("Plan 프롬프트 (필수):", classes="dialog-label")
             yield PromptTextArea(id="input-spec")
             yield Static("참고 지식 (선택):", classes="dialog-label")
             yield PromptTextArea(id="input-context")
@@ -668,7 +668,7 @@ class PlanPromptDialog(ModalScreen):
     def _do_submit(self) -> None:
         spec = self.query_one("#input-spec", TextArea).text.strip()
         if not spec:
-            self.notify("Spec 프롬프트를 입력해주세요.", severity="error")
+            self.notify("Plan 프롬프트를 입력해주세요.", severity="error")
             return
         context = self.query_one("#input-context", TextArea).text.strip()
         tc = self.query_one("#input-tc", TextArea).text.strip()
