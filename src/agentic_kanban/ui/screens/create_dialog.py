@@ -281,6 +281,7 @@ class AddProjectDialog(ModalScreen):
     AddProjectDialog > Vertical {{
         {_DIALOG_CSS}
         width: 65;
+        max-height: 24;
     }}
     AddProjectDialog .dialog-title {{
         color: #58a6ff;
