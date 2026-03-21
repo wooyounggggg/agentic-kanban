@@ -19,8 +19,8 @@ class PromptTextArea(TextArea):
     """Ctrl+A/C/V가 확실히 동작하는 TextArea."""
 
     async def _on_key(self, event) -> None:
-        """키 이벤트를 직접 가로채서 처리."""
-        if event.key == "ctrl+a":
+        """키 이벤트를 직접 가로채서 Ctrl+A/Cmd+A 전체 선택."""
+        if event.key in ("ctrl+a", "super+a"):
             last_line = self.document.line_count - 1
             last_col = len(self.document.get_line(last_line))
             self.selection = Selection(start=(0, 0), end=(last_line, last_col))
