@@ -85,12 +85,18 @@ class Sidebar(Vertical):
             return
         for i, proj in enumerate(self.projects):
             name = proj.get("name", "")
-            if self._focused_mode and i == self._hover_index:
-                container.mount(Static(f" [bold cyan]▶[/] {name}", classes="sb-item-hover"))
-            elif name == self.current_project:
-                container.mount(Static(f" [green]▶[/] {name}", classes="sb-item-current"))
+            if self._focused_mode:
+                # 포커스 모드: hover만 표시
+                if i == self._hover_index:
+                    container.mount(Static(f" [bold cyan]▶[/] {name}", classes="sb-item-hover"))
+                else:
+                    container.mount(Static(f"   {name}", classes="sb-item"))
             else:
-                container.mount(Static(f"   {name}", classes="sb-item"))
+                # 일반 모드: current만 표시
+                if name == self.current_project:
+                    container.mount(Static(f" [green]▶[/] {name}", classes="sb-item-current"))
+                else:
+                    container.mount(Static(f"   {name}", classes="sb-item"))
 
     def set_focused_mode(self, focused: bool, hover_index: int = -1) -> None:
         """Toggle sidebar focus mode with visual feedback."""
