@@ -115,13 +115,13 @@ class AgentService:
                                                 text = block.get("text", "")
                                                 if text:
                                                     output_parts.append(text)
-                                                    log_file.write(text)
+                                                    log_file.write(text + "\n")
                                                     log_file.flush()
                                     elif msg_type == "result":
                                         result_text = obj.get("result", "")
                                         if result_text:
                                             output_parts.append(result_text)
-                                            log_file.write(result_text)
+                                            log_file.write("\n" + result_text + "\n")
                                             log_file.flush()
                                 except _json.JSONDecodeError:
                                     continue
