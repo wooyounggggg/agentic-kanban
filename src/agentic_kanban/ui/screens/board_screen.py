@@ -174,6 +174,16 @@ class BoardScreen(Screen):
 
         board.remove_children()
 
+        total = sum(len(v) for v in self._issues_by_status.values())
+        if total == 0:
+            from textual.widgets import Static
+            board.mount(Static(
+                "\n\n[dim]이슈가 없습니다.\n\n"
+                "n키로 새 이슈를 추가하세요.[/]",
+                id="empty-board-hint",
+            ))
+            return
+
         visible_col = 0
         for status_def in self._statuses:
             if status_def.terminal and not self._show_completed:
