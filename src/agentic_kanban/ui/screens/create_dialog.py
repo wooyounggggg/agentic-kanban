@@ -16,20 +16,18 @@ from agentic_kanban.models.config import StatusDef
 
 
 class PromptTextArea(TextArea):
-    """Ctrl+A = 전체 선택, Ctrl+C/V 지원 TextArea."""
+    """Ctrl+A/C/V가 확실히 동작하는 TextArea."""
 
-    BINDINGS = [
-        # 기존 ctrl+a(cursor_line_start) 제거하고 전체 선택으로 교체
-        b for b in TextArea.BINDINGS
-        if not (hasattr(b, 'key') and 'ctrl+a' in b.key)
-    ] + [
-        Binding("ctrl+a", "select_all_text", "Select All", show=False, priority=True),
-    ]
-
-    def action_select_all_text(self) -> None:
-        last_line = self.document.line_count - 1
-        last_col = len(self.document.get_line(last_line))
-        self.selection = Selection(start=(0, 0), end=(last_line, last_col))
+    async def _on_key(self, event) -> None:
+        """키 이벤트를 직접 가로채서 처리."""
+        if event.key == "ctrl+a":
+            last_line = self.document.line_count - 1
+            last_col = len(self.document.get_line(last_line))
+            self.selection = Selection(start=(0, 0), end=(last_line, last_col))
+            event.prevent_default()
+            event.stop()
+            return
+        await super()._on_key(event)
 from agentic_kanban.ui.themes import THEME_NAMES
 
 
