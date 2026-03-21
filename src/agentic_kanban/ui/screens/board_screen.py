@@ -722,7 +722,16 @@ class BoardScreen(Screen):
 
     def action_theme(self) -> None:
         """T — 테마 선택 다이얼로그 열기."""
-        current_theme = self._config.ui.theme if hasattr(self._config, "ui") else "brown"
+        # 전역 설정에서 현재 테마 읽기
+        current_theme = "brown"
+        try:
+            import yaml
+            settings_path = self.app._global_settings_path()
+            if settings_path.exists():
+                data = yaml.safe_load(settings_path.read_text(encoding="utf-8")) or {}
+                current_theme = data.get("theme", "brown")
+        except Exception:
+            pass
 
         def on_result(name: str) -> None:
             if name is None:
@@ -735,10 +744,16 @@ class BoardScreen(Screen):
                 return
 
             # Save to config
+            # 전역 설정에 저장
             try:
-                if self._store:
-                    self._config.ui.theme = name
-                    self._config.to_yaml(self._store.root / "config.yaml")
+                import yaml
+                settings_path = self.app._global_settings_path()
+                settings_path.parent.mkdir(parents=True, exist_ok=True)
+                data = {}
+                if settings_path.exists():
+                    data = yaml.safe_load(settings_path.read_text(encoding="utf-8")) or {}
+                data["theme"] = name
+                settings_path.write_text(yaml.dump(data, allow_unicode=True), encoding="utf-8")
             except Exception:
                 pass
 

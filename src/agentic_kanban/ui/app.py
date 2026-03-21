@@ -26,24 +26,21 @@ class WtBoardApp(App):
         self.board_path = board_path
         self._last_quit_press = 0.0
 
+    @staticmethod
+    def _global_settings_path():
+        from pathlib import Path
+        return Path.home() / ".config" / "agentic-kanban" / "settings.yaml"
+
     def _apply_startup_theme(self) -> None:
-        """Apply the saved theme before Textual loads CSS."""
+        """Apply the saved theme from global settings."""
         try:
-            from agentic_kanban.models.config import BoardConfig
-            from agentic_kanban.models.projects import ProjectRegistry
             from agentic_kanban.ui.themes import apply_theme
-            from pathlib import Path
-            # current 프로젝트 우선, 없으면 CWD
-            reg = ProjectRegistry.load()
-            entry = reg.get_current()
-            if entry and entry.path:
-                bp = Path(entry.path) / ".board"
-            else:
-                from agentic_kanban.store.board_store import find_board_root
-                bp = find_board_root()
-            if bp and (bp / "config.yaml").exists():
-                config = BoardConfig.from_yaml(bp / "config.yaml")
-                apply_theme(config.ui.theme)
+            import yaml
+            path = self._global_settings_path()
+            if path.exists():
+                data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+                theme = data.get("theme", "brown")
+                apply_theme(theme)
         except Exception:
             pass
 
