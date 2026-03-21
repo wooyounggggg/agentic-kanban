@@ -52,13 +52,28 @@ class AgentService:
         cmd = [binary, "--print", "--dangerously-skip-permissions",
                "--verbose", "--output-format", "stream-json", prompt]
 
-        proc = subprocess.Popen(
-            cmd,
-            cwd=wt_path,
-            stdout=slave_fd,
-            stderr=subprocess.PIPE,
-            text=False,
-        )
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                cwd=wt_path,
+                stdout=slave_fd,
+                stderr=subprocess.PIPE,
+                text=False,
+            )
+        except Exception:
+            try:
+                os.close(slave_fd)
+            except OSError:
+                pass
+            try:
+                os.close(master_fd)
+            except OSError:
+                pass
+            try:
+                log_file.close()
+            except Exception:
+                pass
+            raise
         os.close(slave_fd)  # 부모는 slave 닫음
 
         agent = AgentSession(
@@ -116,9 +131,7 @@ class AgentService:
                     except OSError:
                         break
 
-                os.close(master_fd)
                 proc.wait()
-                log_file.close()
                 output = "\n".join(output_parts).strip()
 
                 self._save_worklog(ticket, prompt, output)
@@ -144,6 +157,15 @@ class AgentService:
                     status=AgentStatus.ERROR, last_heartbeat=now_iso()
                 )
                 self._store.write_agent(ticket, agent_err)
+            finally:
+                try:
+                    os.close(master_fd)
+                except OSError:
+                    pass
+                try:
+                    log_file.close()
+                except Exception:
+                    pass
 
         thread = threading.Thread(target=_worker, daemon=True)
         thread.start()
@@ -250,5 +272,3 @@ class AgentService:
             return "오류"
         return "대기"
 
-    def check_alive(self, ticket: str) -> bool:
-        return self.is_running(ticket)

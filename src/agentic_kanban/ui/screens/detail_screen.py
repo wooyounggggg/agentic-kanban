@@ -231,9 +231,7 @@ class DetailScreen(Screen):
         from rich.markup import escape
         safe_title = escape(self.issue.title)
         chip = self._status_chip()
-        line1 = f"[bold cyan]#{self.issue.ticket}[/]  {chip}  {safe_title}"
-        line2 = ""
-        markup = f"{line1}\n{line2}" if line2 else line1
+        markup = f"[bold cyan]#{self.issue.ticket}[/]  {chip}  {safe_title}"
         try:
             self.query_one("#detail-header", Static).update(markup)
         except Exception:
@@ -283,6 +281,7 @@ class DetailScreen(Screen):
 
     def _show_plan_dialog(self) -> None:
         from agentic_kanban.ui.screens.create_dialog import PlanPromptDialog
+        from agentic_kanban.services.prompt_builder import build_plan_prompt
 
         def on_result(result) -> None:
             if result is None:
@@ -292,11 +291,7 @@ class DetailScreen(Screen):
             tc = result.get("tc", "")
             ticket = self.issue.ticket
             issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
-            prompt = f"아래 요구사항을 기반으로 {issue_dir}/plan.md에 구현 계획을 작성하세요.\n{spec}"
-            if context:
-                prompt += f"\n\n참고 지식:\n{context}"
-            if tc:
-                prompt += f"\n\n테스트 케이스도 함께 작성하세요.\n{tc}"
+            prompt = build_plan_prompt(issue_dir, spec, context, tc)
             if self._agent_service:
                 def _on_agent_done(t, output):
                     self.app.call_from_thread(self._on_agent_complete, t)
@@ -314,16 +309,14 @@ class DetailScreen(Screen):
             return
 
         from agentic_kanban.ui.screens.create_dialog import ImplementConfirmDialog
+        from agentic_kanban.services.prompt_builder import build_implement_prompt
 
         def on_result(confirmed) -> None:
             if not confirmed:
                 return
             ticket = self.issue.ticket
             issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
-            prompt = (
-                f"{issue_dir}/plan.md를 기반으로 구현을 시작하세요.\n"
-                f"작업 완료 후 {issue_dir}/worklog.jsonl에 기록하세요."
-            )
+            prompt = build_implement_prompt(issue_dir)
             if self._agent_service:
                 def _on_agent_done(t, output):
                     self.app.call_from_thread(self._on_agent_complete, t)
@@ -340,6 +333,7 @@ class DetailScreen(Screen):
 
     def _show_review_dialog(self) -> None:
         from agentic_kanban.ui.screens.create_dialog import ReviewPromptDialog
+        from agentic_kanban.services.prompt_builder import build_review_prompt
 
         def on_result(result) -> None:
             if result is None:
@@ -347,10 +341,7 @@ class DetailScreen(Screen):
             review = result["review"]
             ticket = self.issue.ticket
             issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
-            prompt = (
-                f"아래 수정 요청을 반영하세요.\n{review}\n"
-                f"작업 완료 후 {issue_dir}/worklog.jsonl에 기록하세요."
-            )
+            prompt = build_review_prompt(issue_dir, review)
             if self._agent_service:
                 def _on_agent_done(t, output):
                     self.app.call_from_thread(self._on_agent_complete, t)
@@ -409,7 +400,21 @@ class DetailScreen(Screen):
             except Exception:
                 pass
             if not running:
+                # Stop polling when agent is no longer running
+                if hasattr(self, "_agent_refresh_timer"):
+                    self._agent_refresh_timer.stop()
                 return
+            log_path = self._store.issue_dir(self.issue.ticket) / "agent.log"
+            if not log_path.exists():
+                return
+            stat = log_path.stat()
+            mtime = stat.st_mtime
+            size = stat.st_size
+            if (mtime == getattr(self, "_last_log_mtime", 0)
+                    and size == getattr(self, "_last_log_size", 0)):
+                return
+            self._last_log_mtime = mtime
+            self._last_log_size = size
             log = self._read_agent_log()
             if log and hasattr(self, "_agent_viewer"):
                 self._agent_viewer.update_content(log)

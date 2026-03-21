@@ -27,7 +27,7 @@ from agentic_kanban.ui.widgets.sidebar import Sidebar
 # ---------------------------------------------------------------------------
 
 def _mock_issues() -> List[Issue]:
-    from agentic_kanban.models.issue import Issue, WorktreeInfo, TrackerInfo
+    from agentic_kanban.models.issue import Issue
     return [
         Issue(ticket="3373", title="Add user auth flow", status="work", priority=1),
         Issue(ticket="3482", title="Fix DB connection pool leak", status="work", priority=2),
@@ -375,18 +375,28 @@ class BoardScreen(Screen):
             self.set_timer(0.1, self.action_new_issue)
 
     def _switch_to_sidebar_project(self) -> None:
-        """↑↓로 사이드바 프로젝트를 이동하면 즉시 전환."""
+        """↑↓로 사이드바 프로젝트를 이동하면 디바운스 후 전환."""
+        # Cancel pending switch
+        if hasattr(self, "_switch_timer") and self._switch_timer:
+            self._switch_timer.stop()
+        # Update sidebar hover immediately (visual only)
         names = self._registry.names()
         if not names or self._sidebar_index >= len(names):
             return
-        selected = names[self._sidebar_index]
-        # 사이드바 하이라이트 갱신
         try:
             sidebar = self.query_one("#sidebar", Sidebar)
             sidebar.set_hover(self._sidebar_index)
         except Exception:
             pass
-        # 프로젝트 전환
+        # Debounce the actual project load
+        self._switch_timer = self.set_timer(0.3, self._do_switch_project)
+
+    def _do_switch_project(self) -> None:
+        """실제 프로젝트 전환 — 디바운스 후 호출됨."""
+        names = self._registry.names()
+        if not names or self._sidebar_index >= len(names):
+            return
+        selected = names[self._sidebar_index]
         entry = self._registry.switch(selected)
         if entry:
             self.board_path = str(Path(entry.path) / ".board")
@@ -663,6 +673,7 @@ class BoardScreen(Screen):
 
         if current.name == "plan":
             from agentic_kanban.ui.screens.create_dialog import PlanPromptDialog
+            from agentic_kanban.services.prompt_builder import build_plan_prompt
             def on_result(result):
                 if result is None:
                     return
@@ -670,11 +681,7 @@ class BoardScreen(Screen):
                 context = result.get("context", "")
                 tc = result.get("tc", "")
                 issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
-                prompt = f"아래 요구사항을 기반으로 {issue_dir}/plan.md에 구현 계획을 작성하세요.\n{spec}"
-                if context:
-                    prompt += f"\n\n참고 지식:\n{context}"
-                if tc:
-                    prompt += f"\n\n테스트 케이스도 함께 작성하세요.\n{tc}"
+                prompt = build_plan_prompt(issue_dir, spec, context, tc)
                 if agent_svc:
                     agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)
                     self.notify(f"#{ticket} Plan 실행 중...", severity="information")
@@ -686,14 +693,12 @@ class BoardScreen(Screen):
                 self.notify(reason, severity="warning")
                 return
             from agentic_kanban.ui.screens.create_dialog import ImplementConfirmDialog
+            from agentic_kanban.services.prompt_builder import build_implement_prompt
             def on_result(confirmed):
                 if not confirmed:
                     return
                 issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
-                prompt = (
-                    f"{issue_dir}/plan.md를 기반으로 구현을 시작하세요.\n"
-                    f"작업 완료 후 {issue_dir}/worklog.jsonl에 기록하세요."
-                )
+                prompt = build_implement_prompt(issue_dir)
                 if agent_svc:
                     agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)
                 pipeline_svc.advance(ticket)
@@ -703,15 +708,13 @@ class BoardScreen(Screen):
 
         elif current.name == "review":
             from agentic_kanban.ui.screens.create_dialog import ReviewPromptDialog
+            from agentic_kanban.services.prompt_builder import build_review_prompt
             def on_result(result):
                 if result is None:
                     return
                 review = result["review"]
                 issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
-                prompt = (
-                    f"아래 수정 요청을 반영하세요.\n{review}\n"
-                    f"작업 완료 후 {issue_dir}/worklog.jsonl에 기록하세요."
-                )
+                prompt = build_review_prompt(issue_dir, review)
                 if agent_svc:
                     agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)
                     self.notify(f"#{ticket} 수정 실행 중...", severity="information")
@@ -739,10 +742,9 @@ class BoardScreen(Screen):
 
             # Save to config
             try:
-                if self._store is not None:
-                    if self._store:
-                        self._config.ui.theme = name
-                        self._config.to_yaml(self._store.root / "config.yaml")
+                if self._store:
+                    self._config.ui.theme = name
+                    self._config.to_yaml(self._store.root / "config.yaml")
             except Exception:
                 pass
 

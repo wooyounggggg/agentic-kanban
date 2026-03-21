@@ -356,68 +356,6 @@ class AddProjectDialog(ModalScreen):
 
 
 # ---------------------------------------------------------------------------
-# 프로젝트 전환 다이얼로그
-# ---------------------------------------------------------------------------
-
-class SwitchProjectDialog(ModalScreen):
-    """프로젝트 전환 다이얼로그."""
-
-    BINDINGS = [
-        Binding("escape", "cancel", "취소"),
-        Binding("enter", "select", "선택", show=False),
-    ]
-
-    DEFAULT_CSS = f"""
-    SwitchProjectDialog {{
-        align: center middle;
-    }}
-    SwitchProjectDialog > Vertical {{
-        {_DIALOG_CSS}
-        width: 50;
-        max-height: 20;
-    }}
-    SwitchProjectDialog .dialog-title {{
-        color: #58a6ff;
-        text-style: bold;
-        margin-bottom: 1;
-    }}
-    """
-
-    def __init__(self, names: List[str], current: str = "", **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._names = names
-        self._current = current
-
-    def compose(self) -> ComposeResult:
-        with Vertical():
-            yield Static("프로젝트 전환", classes="dialog-title")
-            options = OptionList(id="project-list")
-            for name in self._names:
-                marker = " [green]\u25c0[/]" if name == self._current else ""
-                options.add_option(f"{name}{marker}")
-            yield options
-            yield Button("취소", variant="default", id="btn-cancel")
-
-    def action_cancel(self) -> None:
-        self.dismiss(None)
-
-    def action_select(self) -> None:
-        opt_list = self.query_one("#project-list", OptionList)
-        idx = opt_list.highlighted
-        if idx is not None and 0 <= idx < len(self._names):
-            self.dismiss(self._names[idx])
-
-    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
-        idx = event.option_index
-        if 0 <= idx < len(self._names):
-            self.dismiss(self._names[idx])
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "btn-cancel":
-            self.dismiss(None)
-
-
-# ---------------------------------------------------------------------------
 # 상태 이동 다이얼로그
 # ---------------------------------------------------------------------------
 
@@ -656,10 +594,6 @@ class PlanPromptDialog(ModalScreen):
         except Exception:
             pass
 
-    def on_key(self, event) -> None:
-        """키 입력마다 TextArea 높이 재조정 (Changed 이벤트 누락 대비)."""
-        self.set_timer(0.05, self._resize_all_textareas)
-
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
             self.dismiss(None)
@@ -808,9 +742,6 @@ class ReviewPromptDialog(ModalScreen):
             btn.disabled = not review_text
         except Exception:
             pass
-
-    def on_key(self, event) -> None:
-        self.set_timer(0.05, self._resize_all_textareas)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-cancel":
