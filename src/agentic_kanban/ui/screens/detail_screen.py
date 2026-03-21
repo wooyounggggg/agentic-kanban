@@ -120,7 +120,7 @@ class DetailScreen(Screen):
         panel.mount(Static(f"[bold]Agent[/] (a) [dim]A:확대[/]{agent_status}", id="agent-section-header"))
         agent_log = self._read_agent_log()
         self._agent_viewer = PlanViewer(
-            agent_log or "에이전트가 실행되지 않았습니다.",
+            agent_log or "에이전트 대기 중. r키로 실행하세요.",
             id="agent-viewer",
         )
         self._agent_viewer.display = True  # visible by default
@@ -400,9 +400,6 @@ class DetailScreen(Screen):
             except Exception:
                 pass
             if not running:
-                # Stop polling when agent is no longer running
-                if hasattr(self, "_agent_refresh_timer"):
-                    self._agent_refresh_timer.stop()
                 return
             log_path = self._store.issue_dir(self.issue.ticket) / "agent.log"
             if not log_path.exists():
