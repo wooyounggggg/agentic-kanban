@@ -110,17 +110,27 @@ class BoardConfig:
             )
 
         # Statuses
+        # 기본 이모지 매핑
+        _default_icons = {d.name: d.icon for d in DEFAULT_STATUSES}
+        _default_labels = {d.name: d.label for d in DEFAULT_STATUSES}
+
         raw_statuses = data.get("statuses")
         if raw_statuses:
-            config.statuses = [
-                StatusDef(
-                    name=s.get("name", ""),
-                    label=s.get("label", ""),
-                    icon=s.get("icon", ""),
+            statuses = []
+            for s in raw_statuses:
+                name = s.get("name", "")
+                icon = s.get("icon", "") or _default_icons.get(name, "")
+                label = s.get("label", "")
+                # label에 이모지가 없으면 기본 label 사용
+                if icon and icon not in label:
+                    label = _default_labels.get(name, label)
+                statuses.append(StatusDef(
+                    name=name,
+                    label=label,
+                    icon=icon,
                     terminal=s.get("terminal", False),
-                )
-                for s in raw_statuses
-            ]
+                ))
+            config.statuses = statuses
 
         # Transitions
         config.transitions = data.get("transitions", {})

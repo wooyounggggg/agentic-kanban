@@ -125,10 +125,14 @@ class BoardScreen(Screen):
     def on_mount(self) -> None:
         self._load_data()
         self._rebuild_board()
-        # Focus first non-empty column
-        self.col_index = self._next_nonempty_col(-1, +1)
-        self.card_index = 0
-        self._highlight_current()
+        total = sum(len(v) for v in self._issues_by_status.values())
+        if total > 0:
+            self.col_index = self._next_nonempty_col(-1, +1)
+            self.card_index = 0
+            self.set_timer(0.05, self._highlight_current)
+        else:
+            # 빈 프로젝트 → 사이드바 포커스
+            self._focus_sidebar()
 
     def _load_data(self) -> None:
         """Try to load from BoardStore; fall back to mock data."""
