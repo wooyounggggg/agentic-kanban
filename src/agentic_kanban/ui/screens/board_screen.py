@@ -598,10 +598,6 @@ class BoardScreen(Screen):
                 from agentic_kanban.services.issue_service import IssueService
                 svc = IssueService(self._store, self._config)
                 svc.move_issue(saved_ticket, new_status)
-                # Also sync pipeline_step to match status
-                issue_obj = self._store.read_issue(saved_ticket)
-                issue_obj.pipeline_step = new_status
-                self._store.write_issue(saved_ticket, issue_obj)
 
                 self._refresh_board(focus_ticket=saved_ticket)
                 self.notify(f"#{saved_ticket} → {new_status}", severity="information")

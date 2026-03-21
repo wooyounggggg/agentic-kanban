@@ -30,7 +30,7 @@ class TrackerInfo:
 class Issue:
     ticket: str = ""
     title: str = ""
-    status: str = "planning"
+    status: str = StepName.PLAN  # 칸반 상태 = pipeline_step (단일 소스)
     priority: int = 99
     created_at: str = ""
     updated_at: str = ""
@@ -39,7 +39,14 @@ class Issue:
     labels: List[str] = field(default_factory=list)
     description: str = ""
     assignee: str = ""
-    pipeline_step: str = StepName.PLAN
+
+    @property
+    def pipeline_step(self) -> str:
+        return self.status
+
+    @pipeline_step.setter
+    def pipeline_step(self, value: str) -> None:
+        self.status = value
 
     @classmethod
     def from_yaml(cls, path: Path) -> "Issue":
@@ -50,10 +57,13 @@ class Issue:
         wt = data.pop("worktree", {}) or {}
         tr = data.pop("tracker", {}) or {}
 
+        # pipeline_step 우선, 없으면 status, 없으면 기본값
+        status = data.get("pipeline_step") or data.get("status") or StepName.PLAN
+
         return cls(
             ticket=str(data.get("ticket", "")),
             title=data.get("title", ""),
-            status=data.get("status", "planning"),
+            status=status,
             priority=data.get("priority", 99),
             created_at=data.get("created_at", ""),
             updated_at=data.get("updated_at", ""),
@@ -62,7 +72,6 @@ class Issue:
             labels=data.get("labels", []),
             description=data.get("description", ""),
             assignee=data.get("assignee", ""),
-            pipeline_step=data.get("pipeline_step", StepName.PLAN),
         )
 
     def to_yaml(self, path: Path) -> None:
