@@ -1,0 +1,6 @@
+{
+  "name": "agentic-kanban",
+  "version": "0.1.0",
+  "description": "AI agent pipeline skills for agentic-kanban board",
+  "private": true
+}
