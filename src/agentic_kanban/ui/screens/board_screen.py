@@ -14,7 +14,7 @@ from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widgets import Footer, Header, Label, Static
 
-from agentic_kanban.models.config import DEFAULT_STATUSES, BoardConfig, StatusDef
+from agentic_kanban.models.config import DEFAULT_STATUSES, BoardConfig, StatusDef, StepName
 from agentic_kanban.models.issue import Issue
 from agentic_kanban.models.projects import ProjectRegistry
 from agentic_kanban.ui.widgets.issue_card import IssueCard
@@ -167,7 +167,7 @@ class BoardScreen(Screen):
                     pass
 
             for issue in all_issues:
-                if issue.pipeline_step == "completed" and not self._show_completed:
+                if issue.pipeline_step == StepName.COMPLETED and not self._show_completed:
                     continue
                 self._issues_by_status.setdefault(issue.status, []).append(issue)
 
@@ -562,7 +562,7 @@ class BoardScreen(Screen):
                 from agentic_kanban.services.issue_service import IssueService
                 svc = IssueService(self._store, self._config)
                 issue = svc.create_issue(ticket, title=title)
-                issue.pipeline_step = "plan"
+                issue.pipeline_step = StepName.PLAN
                 if desc:
                     issue.description = desc
                     issue.assignee = assignee
@@ -671,7 +671,7 @@ class BoardScreen(Screen):
                 self.notify, f"#{t} 작업 완료.", "information"
             )
 
-        if current.name == "plan":
+        if current.name == StepName.PLAN:
             from agentic_kanban.ui.screens.create_dialog import PlanPromptDialog
             from agentic_kanban.services.prompt_builder import build_plan_prompt
             def on_result(result):
@@ -687,7 +687,7 @@ class BoardScreen(Screen):
                     self.notify(f"#{ticket} Plan 실행 중...", severity="information")
             self.app.push_screen(PlanPromptDialog(), callback=on_result)
 
-        elif current.name == "implement":
+        elif current.name == StepName.IMPLEMENT:
             ok, reason = pipeline_svc.can_advance(ticket)
             if not ok:
                 self.notify(reason, severity="warning")
@@ -706,7 +706,7 @@ class BoardScreen(Screen):
                 self.notify(f"#{ticket} 구현 실행 중...", severity="information")
             self.app.push_screen(ImplementConfirmDialog(), callback=on_result)
 
-        elif current.name == "review":
+        elif current.name == StepName.REVIEW:
             from agentic_kanban.ui.screens.create_dialog import ReviewPromptDialog
             from agentic_kanban.services.prompt_builder import build_review_prompt
             def on_result(result):
@@ -720,7 +720,7 @@ class BoardScreen(Screen):
                     self.notify(f"#{ticket} 수정 실행 중...", severity="information")
             self.app.push_screen(ReviewPromptDialog(), callback=on_result)
 
-        elif current.name == "completed":
+        elif current.name == StepName.COMPLETED:
             self.notify("최종 단계입니다.", severity="information")
 
     def action_search(self) -> None:

@@ -8,6 +8,14 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 
+class StepName:
+    """Pipeline step / status name constants."""
+    PLAN = "plan"
+    IMPLEMENT = "implement"
+    REVIEW = "review"
+    COMPLETED = "completed"
+
+
 @dataclass
 class PipelineStep:
     name: str = ""        # plan, implement, review, completed
@@ -17,10 +25,10 @@ class PipelineStep:
 
 
 DEFAULT_PIPELINE: List[PipelineStep] = [
-    PipelineStep(name="plan", label="Plan", artifact="plan.md"),
-    PipelineStep(name="implement", label="Implement", artifact=""),
-    PipelineStep(name="review", label="Review", artifact=""),
-    PipelineStep(name="completed", label="Completed", artifact=""),
+    PipelineStep(name=StepName.PLAN, label="Plan", artifact="plan.md"),
+    PipelineStep(name=StepName.IMPLEMENT, label="Implement", artifact=""),
+    PipelineStep(name=StepName.REVIEW, label="Review", artifact=""),
+    PipelineStep(name=StepName.COMPLETED, label="Completed", artifact=""),
 ]
 
 
@@ -33,10 +41,10 @@ class StatusDef:
 
 
 DEFAULT_STATUSES = [
-    StatusDef(name="plan", label="Plan 📝", icon="📝"),
-    StatusDef(name="implement", label="Implement 🔨", icon="🔨"),
-    StatusDef(name="review", label="Review 🔍", icon="🔍"),
-    StatusDef(name="completed", label="Completed ✅", icon="✅", terminal=True),
+    StatusDef(name=StepName.PLAN, label="Plan 📝", icon="📝"),
+    StatusDef(name=StepName.IMPLEMENT, label="Implement 🔨", icon="🔨"),
+    StatusDef(name=StepName.REVIEW, label="Review 🔍", icon="🔍"),
+    StatusDef(name=StepName.COMPLETED, label="Completed ✅", icon="✅", terminal=True),
 ]
 
 

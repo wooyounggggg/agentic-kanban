@@ -14,14 +14,14 @@ from agentic_kanban.models.issue import Issue
 from agentic_kanban.models.checklist import Checklist
 from agentic_kanban.models.worklog import WorklogEntry
 from agentic_kanban.models.agent import AgentSession, AgentStatus
-from agentic_kanban.models.config import BoardConfig
+from agentic_kanban.models.config import BoardConfig, StepName
 
 
 _STATUS_COLOR = {
-    "plan": "#e0a050",
-    "implement": "#50a0e0",
-    "review": "#c070c0",
-    "completed": "#50c070",
+    StepName.PLAN: "#e0a050",
+    StepName.IMPLEMENT: "#50a0e0",
+    StepName.REVIEW: "#c070c0",
+    StepName.COMPLETED: "#50c070",
 }
 
 
@@ -268,13 +268,13 @@ class DetailScreen(Screen):
             return
         current = self._pipeline_service.current_step(self.issue.ticket)
 
-        if current.name == "plan":
+        if current.name == StepName.PLAN:
             self._show_plan_dialog()
-        elif current.name == "implement":
+        elif current.name == StepName.IMPLEMENT:
             self._show_implement_confirm()
-        elif current.name == "review":
+        elif current.name == StepName.REVIEW:
             self._show_review_dialog()
-        elif current.name == "completed":
+        elif current.name == StepName.COMPLETED:
             self.notify("최종 단계입니다.", severity="information")
         else:
             self.notify(f"알 수 없는 단계: {current.name}", severity="warning")

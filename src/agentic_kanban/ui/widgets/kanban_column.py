@@ -10,7 +10,7 @@ from textual.widgets import Static
 from textual.containers import Vertical
 
 from agentic_kanban.models.issue import Issue
-from agentic_kanban.models.config import StatusDef
+from agentic_kanban.models.config import StatusDef, StepName
 from agentic_kanban.ui.widgets.issue_card import IssueCard
 
 
@@ -69,10 +69,10 @@ class KanbanColumn(Vertical):
         self.focused_index = selected_index
 
     _COL_COLORS = {
-        "plan": "#e0a050",
-        "implement": "#50a0e0",
-        "review": "#c070c0",
-        "completed": "#50c070",
+        StepName.PLAN: "#e0a050",
+        StepName.IMPLEMENT: "#50a0e0",
+        StepName.REVIEW: "#c070c0",
+        StepName.COMPLETED: "#50c070",
     }
 
     def compose(self) -> ComposeResult:

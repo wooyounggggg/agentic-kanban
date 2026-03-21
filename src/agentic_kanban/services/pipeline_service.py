@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from agentic_kanban.models.config import BoardConfig, PipelineStep
+from agentic_kanban.models.config import BoardConfig, PipelineStep, StepName
 from agentic_kanban.store.board_store import BoardStore
 from agentic_kanban.services.agent_service import AgentService
 
@@ -56,13 +56,13 @@ class PipelineService:
         """Get current pipeline step for this issue."""
         try:
             issue = self._store.read_issue(ticket)
-            step_name = issue.pipeline_step or "plan"
+            step_name = issue.pipeline_step or StepName.PLAN
         except FileNotFoundError:
-            step_name = "plan"
+            step_name = StepName.PLAN
         step = self._step_by_name(step_name)
         if step is None and self._steps():
             step = self._steps()[0]
-        return step or PipelineStep(name="plan", label="Plan")
+        return step or PipelineStep(name=StepName.PLAN, label="Plan")
 
     def can_advance(self, ticket: str) -> Tuple[bool, str]:
         """Check if we can advance from the current step.

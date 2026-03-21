@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional, List
 
 from agentic_kanban.utils import now_iso
+from agentic_kanban.models.config import StepName
 
 
 @dataclass
@@ -38,7 +39,7 @@ class Issue:
     labels: List[str] = field(default_factory=list)
     description: str = ""
     assignee: str = ""
-    pipeline_step: str = "plan"
+    pipeline_step: str = StepName.PLAN
 
     @classmethod
     def from_yaml(cls, path: Path) -> "Issue":
@@ -61,7 +62,7 @@ class Issue:
             labels=data.get("labels", []),
             description=data.get("description", ""),
             assignee=data.get("assignee", ""),
-            pipeline_step=data.get("pipeline_step", "plan"),
+            pipeline_step=data.get("pipeline_step", StepName.PLAN),
         )
 
     def to_yaml(self, path: Path) -> None:
