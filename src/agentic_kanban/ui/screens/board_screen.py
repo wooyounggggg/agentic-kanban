@@ -468,7 +468,7 @@ class BoardScreen(Screen):
             return None
 
     def action_sync_worktree(self) -> None:
-        """w키 — 선택 이슈의 worktree를 메인 프로젝트로 동기화 (rsync)."""
+        """s키 — 선택 이슈의 worktree를 메인 프로젝트로 동기화 (확인 모달)."""
         issue = self._current_issue()
         if issue is None:
             self.notify("이슈를 선택해주세요.", severity="warning")
@@ -485,33 +485,43 @@ class BoardScreen(Screen):
         if not wt_abs.exists():
             self.notify(f"worktree 없음: {wt_abs}", severity="error")
             return
-        # 메인 프로젝트 경로 = .kanban의 부모
         main_dir = self._store.root.parent if self._store else Path.cwd()
-        import subprocess, threading
-        def _do_sync():
-            try:
-                result = subprocess.run(
-                    ["rsync", "-av", "--delete",
-                     "--exclude=.git", "--exclude=.idea",
-                     "--exclude=node_modules", "--exclude=target",
-                     "--exclude=build", "--exclude=.gradle",
-                     "--exclude=out", "--exclude=.kanban",
-                     f"{wt_abs}/", f"{main_dir}/"],
-                    capture_output=True, text=True, timeout=30,
-                )
-                if result.returncode == 0:
-                    self.app.call_from_thread(
-                        self.notify, f"#{issue.ticket} worktree → 메인 동기화 완료", "information"
+        saved_ticket = issue.ticket
+
+        from agentic_kanban.ui.screens.create_dialog import ConfirmDialog
+        def on_result(confirmed) -> None:
+            if not confirmed:
+                return
+            import subprocess, threading
+            def _do_sync():
+                try:
+                    result = subprocess.run(
+                        ["rsync", "-av", "--delete",
+                         "--exclude=.git", "--exclude=.idea",
+                         "--exclude=node_modules", "--exclude=target",
+                         "--exclude=build", "--exclude=.gradle",
+                         "--exclude=out", "--exclude=.kanban",
+                         f"{wt_abs}/", f"{main_dir}/"],
+                        capture_output=True, text=True, timeout=30,
                     )
-                else:
+                    if result.returncode == 0:
+                        self.app.call_from_thread(
+                            self.notify, f"#{saved_ticket} 동기화 완료", "information"
+                        )
+                    else:
+                        self.app.call_from_thread(
+                            self.notify, f"동기화 실패: {result.stderr[:100]}", "error"
+                        )
+                except Exception as exc:
                     self.app.call_from_thread(
-                        self.notify, f"동기화 실패: {result.stderr[:100]}", "error"
+                        self.notify, f"동기화 오류: {exc}", "error"
                     )
-            except Exception as exc:
-                self.app.call_from_thread(
-                    self.notify, f"동기화 오류: {exc}", "error"
-                )
-        self.notify(f"#{issue.ticket} 동기화 중...", severity="information")
+            threading.Thread(target=_do_sync, daemon=True).start()
+
+        self.app.push_screen(
+            ConfirmDialog(message=f"#{saved_ticket} worktree → 메인 동기화할까요?"),
+            callback=on_result,
+        )
         threading.Thread(target=_do_sync, daemon=True).start()
 
     def action_delete_item(self) -> None:
