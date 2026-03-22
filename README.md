@@ -1,10 +1,10 @@
 <p align="center">
   <h1 align="center">agentic-kanban</h1>
   <p align="center">
-    <strong>AI 에이전트가 작업하는 터미널 칸반보드</strong>
+    <strong>AI-Driven Kanban Board for Terminal-Based Parallel Development</strong>
   </p>
   <p align="center">
-    이슈별 AI 에이전트를 할당하여 Plan → Implement → Review 파이프라인을 자동 실행합니다.
+    Assign AI agents to issues and watch them flow through a 4-stage pipeline—all from your terminal.
   </p>
 </p>
 
@@ -16,31 +16,32 @@
 
 ---
 
-![Board Screenshot](docs/demo.svg)
+## The Problem
 
-## Why agentic-kanban?
+Most AI coding tools work on one issue at a time. You queue up code changes, wait for them to finish, then move to the next task. When you're managing multiple issues across different features or bug fixes, this serial workflow becomes a bottleneck.
 
-> 여러 이슈를 병렬로 AI에게 맡기고, 결과를 한눈에 관리하고 싶다.
+**agentic-kanban** changes that. It lets you assign AI agents to multiple issues in parallel, manage them on a visual kanban board, and track progress in real-time—all without leaving your terminal.
 
-기존 AI 코딩 도구는 한 번에 하나의 작업만 처리합니다. agentic-kanban은 칸반보드에서 여러 이슈에 각각 AI 에이전트를 할당하고, 정해진 파이프라인에 따라 자동 실행합니다.
+## What It Does
 
-- 📋 **칸반보드** — 이슈 상태를 한눈에. vim 키바인딩 지원
-- 🤖 **AI 파이프라인** — Plan → Implement → Review 단계별 에이전트 실행
-- 📡 **실시간 스트리밍** — 에이전트 작업 진행 상황을 Agent 탭에서 실시간 확인
-- 🔗 **Dooray 연동** — [NHN Dooray](https://dooray.com) 티켓 조회, 댓글, 상태 자동 동기화
-- 📁 **멀티 프로젝트** — 사이드바에서 프로젝트 전환, Git worktree 기반 격리
-- 🎨 **8가지 테마** — brown, catppuccin, nord, github-dark, dracula, solarized-dark, gruvbox, tokyo-night
-- 🔌 **Claude Code 플러그인** — TUI 없이 `/agentic-kanban:plan` 등 슬래시 커맨드로 사용 가능
+- **Visual Kanban Board** — Organize issues across 4 pipeline stages (Plan, Implement, Review, Completed) with vim keybindings
+- **AI Agent Pipeline** — Each issue flows through Plan → Implement → Review stages, with agents handling each step automatically
+- **Real-Time Streaming** — Watch agent work happen live in the Agent tab, updated every second
+- **Dooray Integration** — Fetch issues from NHN Dooray, sync comments and status, auto-poll for updates
+- **Multi-Project Support** — Switch between projects instantly via sidebar (powered by Git worktrees for isolation)
+- **8 Beautiful Themes** — brown, catppuccin, nord, github-dark, dracula, solarized-dark, gruvbox, tokyo-night
+- **Claude Code Skills** — Use `/agentic-kanban:plan`, `/agentic-kanban:implement`, etc. for headless agent workflows
+- **Human-Readable Storage** — All data in `.kanban/` using YAML, Markdown, and JSONL—easy to version control and inspect
 
-## Quick Start
+## Getting Started
 
-### 요구사항
+### Requirements
 
-- Python 3.9+
-- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) (`claude` 명령)
-- [NHN Dooray](https://dooray.com) 계정 + API key (이슈 연동 시)
+- Python 3.9 or later
+- [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)
+- (Optional) NHN Dooray account + API key for issue tracker integration
 
-### 설치
+### Installation
 
 ```bash
 git clone https://github.com/wooyounggggg/agentic-kanban.git
@@ -48,119 +49,211 @@ cd agentic-kanban
 pip install -e .
 ```
 
-### 실행
+To also install Claude Code plugin skills (optional):
 
 ```bash
-cd <프로젝트 디렉토리>
-agentic-kanban init    # 최초 1회 — .kanban/ 생성, Dooray API key 설정
-agentic-kanban         # TUI 실행
+./install.sh
 ```
 
-## Pipeline
-
-각 이슈는 4단계 파이프라인을 거칩니다. `r`키로 실행합니다.
-
-| 단계 | 설명 | 산출물 |
-|------|------|--------|
-| 📝 **Plan** | Spec + 참고 지식으로 구현 계획 수립 | `plan.md` |
-| 🔨 **Implement** | Plan 기반 자동 구현 | 코드 변경 |
-| 🔍 **Review** | 수정 프롬프트로 코드 수정 | 코드 수정 |
-| ✅ **Completed** | 완료 | — |
-
-에이전트는 [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code)를 백그라운드로 실행하며, 결과는 `agent.log`에 실시간 스트리밍됩니다. 작업 완료 시 `worklog.jsonl`에 bullet list로 요약 저장됩니다.
-
-## Dooray 연동
-
-[NHN Dooray](https://dooray.com) 이슈 트래커와 연동됩니다:
-
-- **티켓 조회** — `n`키로 이슈 추가 시 Dooray 티켓번호 입력 → 제목 자동 조회
-- **본문 + 댓글** — `f`키로 Dooray 본문/댓글 fetch → Ticket/Comments 탭에 표시
-- **상태 동기화** — 60초 주기 자동 폴링 (제목, 상태, 담당자)
-- **한글 상태명** — Dooray workflow 한글명을 카드에 chip으로 표시
-
-연동에는 `tools/dooray-cli.js` (프로젝트에 포함)와 Dooray API key가 필요합니다.
-
-## Claude Code Plugin
-
-TUI 없이 Claude Code 세션에서 직접 사용할 수 있는 스킬 플러그인을 제공합니다.
-
-### 설치
+### First Run
 
 ```bash
-claude plugin add ./plugin
+cd <your-project-directory>
+agentic-kanban init
+agentic-kanban
 ```
 
-### 사용
-
-```
-/agentic-kanban:setup 3724        # 티켓 → 칸반 이슈 + worktree 생성
-/agentic-kanban:plan 3724         # plan.md 대화형 작성
-/agentic-kanban:implement 3724    # plan 기반 코드 구현
-/agentic-kanban:review 3724       # 코드 리뷰 + 수정
-```
-
-스킬은 `.kanban/` 데이터를 TUI와 공유합니다. 스킬로 만든 plan.md를 TUI에서 확인하고, TUI에서 만든 이슈를 스킬에서 작업할 수 있습니다.
+The `init` command creates a `.kanban/` directory and prompts for your Dooray API key (if you plan to use it). Then `agentic-kanban` launches the TUI.
 
 ## How It Works
 
+### The Pipeline
+
+Every issue moves through 4 stages:
+
+| Stage | What Happens | Output |
+|-------|--------------|--------|
+| **📝 Plan** | Spec + context → implementation plan | `plan.md` |
+| **🔨 Implement** | Plan + prompt → actual code changes | Code commits |
+| **🔍 Review** | Fix/improvement prompt → code refinements | Code commits |
+| **✅ Completed** | Issue done | — |
+
+Press `r` on any issue to run the agent for its current stage. The agent spawns a background `claude` process, streams output to `agent.log`, and saves a work summary to `worklog.jsonl` when done.
+
+### The Board
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    agentic-kanban                         │
-│                                                           │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐ │
-│  │ Plan 📝  │  │ Impl 🔨  │  │Review 🔍 │  │Completed✅│ │
-│  │ #101     │  │ #103 ⟳  │  │ #105     │  │ #106     │ │
-│  │ #102     │  │ #104     │  │          │  │          │ │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘ │
-│                                                           │
-│  r키 → 프롬프트 입력 → claude 실행 → 결과 저장             │
-│  /agentic-kanban:plan → 대화형 → plan.md 저장             │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│                  agentic-kanban                     │
+│                                                     │
+│  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
+│  │ Plan 📝  │  │ Impl 🔨  │  │ Review 🔍        │  │
+│  │ #101     │  │ #103 ⟳  │  │ #105             │  │
+│  │ #102     │  │ #104     │  │ #106             │  │
+│  └──────────┘  └──────────┘  └──────────────────┘  │
+│                                                     │
+│  ┌──────────────────────────────────────────────┐  │
+│  │ Completed ✅                                 │  │
+│  │ #100 #102                                     │  │
+│  └──────────────────────────────────────────────┘  │
+│                                                     │
+│  r = run agent | n = new issue | f = fetch | etc.  │
+└─────────────────────────────────────────────────────┘
 ```
+
+Use arrow keys to navigate, vim keys to move issues between columns, and `?` for help.
+
+## Dooray Integration
+
+If you provide a Dooray API key during `init`, agentic-kanban will:
+
+- **Fetch Issues** — Press `n` and enter a ticket number to auto-import issue title from Dooray
+- **Load Details** — Press `f` to fetch the full issue description and comments from Dooray
+- **Sync Status** — Every 60 seconds, auto-update issue titles, status, and assignee from Dooray
+- **Show State** — Dooray workflow state appears as a chip on each card (in Korean if that's your Dooray language)
+
+The integration uses `tools/dooray-cli.js` (included) to call Dooray's REST API.
+
+## Claude Code Skills (Plugin)
+
+For workflows that don't need the TUI, use the skills in Claude Code:
+
+```
+/agentic-kanban:setup 3724        # Create issue + worktree from ticket #3724
+/agentic-kanban:plan 3724         # Interactive plan generation
+/agentic-kanban:implement 3724    # Code implementation from plan
+/agentic-kanban:review 3724       # Code review + fixes
+```
+
+Skills read and write the same `.kanban/` data, so you can mix TUI and skill workflows. Create a plan in the TUI, implement it via skill, review in TUI, then mark complete.
 
 ## Configuration
 
+### Project Config (`.kanban/config.yaml`)
+
+Created by `agentic-kanban init`. Customize pipeline stages, statuses, and agent behavior:
+
 ```yaml
-# .kanban/config.yaml (프로젝트별)
 project:
   name: my-project
-  worktree_base: worktrees   # 절대경로도 가능: ~/worktrees/my-project
-  base_branch: develop
+  worktree_base: worktrees      # Directory for Git worktrees
+  branch_prefix: feature-        # Branch naming: feature-{ticket}
+  base_branch: develop           # Branch to create worktrees from
 
 tracker:
   type: dooray
   dooray:
     cli_path: tools/dooray-cli.js
-    api_key: <your-api-key>
-  sync_interval: 60
+    api_key: <your-key>
+  sync_interval: 60              # Auto-sync every 60 seconds
 
 agent:
   binary: claude
-  max_concurrent: 3
+  max_concurrent: 3              # Max parallel agents
 ```
 
+### Global Config (`~/.config/agentic-kanban/settings.yaml`)
+
+Appearance settings shared across all projects:
+
 ```yaml
-# ~/.config/agentic-kanban/settings.yaml (전역)
-theme: dracula
+theme: dracula                   # One of: brown, catppuccin, nord, etc.
 ```
 
 ## Data Structure
 
+All board data lives in `.kanban/` (commitable, human-readable):
+
 ```
 .kanban/
-├── config.yaml          # 프로젝트 설정
+├── config.yaml                 # Project configuration
 ├── issues/
 │   └── {ticket}/
-│       ├── issue.yaml     # 이슈 메타데이터
-│       ├── plan.md        # 구현 계획
-│       ├── checklist.yaml # TC 체크리스트
-│       ├── worklog.jsonl  # 작업 로그
-│       ├── agent.log      # 에이전트 실시간 로그
-│       ├── description.md # Dooray 본문
-│       └── comments.md    # Dooray 댓글
-├── archive/              # 완료 이슈
-└── cache/                # 캐시
+│       ├── issue.yaml          # Issue metadata (status, priority, dates)
+│       ├── plan.md             # Implementation plan
+│       ├── checklist.yaml      # Task checklist
+│       ├── worklog.jsonl       # Agent work summaries (one per line)
+│       ├── agent.log           # Live stream of latest agent run
+│       ├── description.md      # Dooray issue description (cached)
+│       └── comments.md         # Dooray comments (cached)
+├── archive/                    # Completed issues (moved here when done)
+└── cache/                      # Temporary data
 ```
+
+Each `.kanban/issues/{ticket}/` is self-contained. You can version control it, share it with teammates, or inspect the YAML directly.
+
+## Common Tasks
+
+### Create an Issue
+
+In the TUI, press `n` and enter:
+- Ticket number (e.g., `3724`)
+- Title (auto-fetched from Dooray if available)
+- Base branch (defaults to config value)
+
+Or from CLI:
+
+```bash
+agentic-kanban add 3724 --title "Add new feature" --base main
+```
+
+### Run an Agent
+
+1. Select an issue on the board
+2. Press `r`
+3. Enter a prompt (or accept the default)
+4. Watch the Agent tab for live output
+5. Once done, the issue auto-advances to the next stage (if plan exists for Implement, etc.)
+
+### Fetch Dooray Details
+
+- Press `f` on an issue to fetch description + comments
+- View in Ticket and Comments tabs
+- Synced automatically every 60 seconds
+
+### Move Issues Between Stages
+
+- `h` / `l` (vim) or arrow keys to select column
+- `j` / `k` (vim) or arrow keys to select issue
+- `<` / `>` to move left/right between columns
+
+### View Issue Details
+
+- Press `Enter` to open detail view
+- See plan, checklist, worklog, and agent output
+- Edit plan in-editor if needed
+
+### Switch Projects
+
+- Press `Ctrl+H` or `Ctrl+L` (or arrow keys in sidebar) to switch projects
+- Each project has its own `.kanban/` directory with isolated worktrees
+
+## Keyboard Shortcuts
+
+All keybindings are shown in the TUI with `?`. Key ones:
+
+| Key | Action |
+|-----|--------|
+| `r` | Run agent for current stage |
+| `n` | New issue |
+| `f` | Fetch issue from Dooray |
+| `Enter` | Show issue details |
+| `h`/`l` | Move between columns |
+| `j`/`k` | Move between issues |
+| `<`/`>` | Move issue left/right |
+| `q` | Quit |
+| `?` | Help |
+
+## Migration from `.wt-state/`
+
+If you've been using the old `.wt-state/` format (from `wt-` skills), agentic-kanban can import it:
+
+```bash
+agentic-kanban init
+agentic-kanban migrate
+```
+
+This reads `worktrees/*/. wt-state/` and creates equivalent issues in `.kanban/issues/`.
 
 ## License
 
