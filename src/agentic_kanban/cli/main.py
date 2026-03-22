@@ -266,5 +266,59 @@ def show(ticket: str) -> None:
         console.print(f"[bold]Checklist:[/bold] {progress}")
 
 
+@cli.command()
+@click.argument("ticket")
+@click.option("--force", "-f", is_flag=True, help="확인 없이 강제 동기화")
+def sync(ticket: str, force: bool) -> None:
+    """워크트리 변경사항을 메인 프로젝트로 동기화 (rsync)."""
+    store, config = _load_store_and_config()
+
+    try:
+        issue = store.read_issue(ticket)
+    except FileNotFoundError:
+        console.print(f"[red]이슈를 찾을 수 없습니다: {ticket}[/red]")
+        sys.exit(1)
+
+    wt_path = issue.worktree.path
+    if not wt_path:
+        console.print("[red]worktree 경로가 설정되지 않았습니다.[/red]")
+        sys.exit(1)
+
+    wt_abs = Path(wt_path)
+    if not wt_abs.is_absolute():
+        wt_abs = store.root.parent / wt_path
+    if not wt_abs.exists():
+        console.print(f"[red]worktree 없음: {wt_abs}[/red]")
+        sys.exit(1)
+
+    main_dir = store.root.parent
+
+    console.print(f"[bold]#{ticket}[/bold] worktree → 메인 동기화")
+    console.print(f"  소스: {wt_abs}/")
+    console.print(f"  대상: {main_dir}/")
+
+    if not force:
+        if not click.confirm("계속할까요?"):
+            console.print("[dim]취소됨.[/dim]")
+            return
+
+    import subprocess
+    result = subprocess.run(
+        ["rsync", "-av", "--delete",
+         "--exclude=.git", "--exclude=.idea",
+         "--exclude=node_modules", "--exclude=target",
+         "--exclude=build", "--exclude=.gradle",
+         "--exclude=out", "--exclude=.kanban",
+         f"{wt_abs}/", f"{main_dir}/"],
+        capture_output=True, text=True, timeout=30,
+    )
+
+    if result.returncode == 0:
+        console.print(f"[green]✅ #{ticket} worktree → 메인 동기화 완료[/green]")
+    else:
+        console.print(f"[red]동기화 실패:[/red] {result.stderr[:200]}")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     cli()

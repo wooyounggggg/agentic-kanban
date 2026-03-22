@@ -49,7 +49,7 @@ class BoardScreen(Screen):
         Binding("m", "move_card", "Move"),
         Binding("T", "theme", "Theme"),
         Binding("v", "toggle_completed", "완료토글"),
-        Binding("w", "sync_worktree", "Sync"),
+        Binding("s", "sync_worktree", "Sync"),
         Binding("x", "delete_item", "Delete"),
         Binding("/", "search", "Search"),
         Binding("left,h", "col_left", "Left", show=False),
