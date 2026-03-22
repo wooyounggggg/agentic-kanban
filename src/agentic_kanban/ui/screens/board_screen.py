@@ -488,11 +488,11 @@ class BoardScreen(Screen):
         main_dir = self._store.root.parent if self._store else Path.cwd()
         saved_ticket = issue.ticket
 
+        import subprocess, threading
         from agentic_kanban.ui.screens.create_dialog import ConfirmDialog
         def on_result(confirmed) -> None:
             if not confirmed:
                 return
-            import subprocess, threading
             def _do_sync():
                 try:
                     result = subprocess.run(

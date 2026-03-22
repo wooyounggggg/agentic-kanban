@@ -266,6 +266,78 @@ def show(ticket: str) -> None:
         console.print(f"[bold]Checklist:[/bold] {progress}")
 
 
+# ---------------------------------------------------------------------------
+# project
+# ---------------------------------------------------------------------------
+
+@cli.group()
+def project() -> None:
+    """프로젝트 관리."""
+    pass
+
+
+@project.command(name="list")
+def project_list() -> None:
+    """등록된 프로젝트 목록."""
+    from agentic_kanban.models.projects import ProjectRegistry
+    from rich.table import Table
+
+    reg = ProjectRegistry.load()
+    if not reg.projects:
+        console.print("[dim]등록된 프로젝트가 없습니다.[/dim]")
+        return
+
+    table = Table(title="Projects")
+    table.add_column("", width=3)
+    table.add_column("이름", style="cyan")
+    table.add_column("경로")
+
+    for p in reg.projects:
+        marker = "▶" if p.name == reg.current else ""
+        table.add_row(marker, p.name, p.path)
+
+    console.print(table)
+
+
+@project.command(name="add")
+@click.argument("name")
+@click.argument("path")
+def project_add(name: str, path: str) -> None:
+    """프로젝트 등록."""
+    from agentic_kanban.models.projects import ProjectRegistry
+
+    reg = ProjectRegistry.load()
+    reg.add(name, path)
+    console.print(f"[green]프로젝트 '{name}' 등록 완료.[/green]")
+
+
+@project.command(name="remove")
+@click.argument("name")
+def project_remove(name: str) -> None:
+    """프로젝트 삭제."""
+    from agentic_kanban.models.projects import ProjectRegistry
+
+    reg = ProjectRegistry.load()
+    if reg.remove(name):
+        console.print(f"[green]프로젝트 '{name}' 삭제.[/green]")
+    else:
+        console.print(f"[red]프로젝트 '{name}'을 찾을 수 없습니다.[/red]")
+
+
+@project.command(name="use")
+@click.argument("name")
+def project_use(name: str) -> None:
+    """현재 프로젝트 전환."""
+    from agentic_kanban.models.projects import ProjectRegistry
+
+    reg = ProjectRegistry.load()
+    entry = reg.switch(name)
+    if entry:
+        console.print(f"[green]현재 프로젝트: '{name}'[/green]")
+    else:
+        console.print(f"[red]프로젝트 '{name}'을 찾을 수 없습니다.[/red]")
+
+
 @cli.command()
 @click.argument("ticket")
 @click.option("--force", "-f", is_flag=True, help="확인 없이 강제 동기화")
