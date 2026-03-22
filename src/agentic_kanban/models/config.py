@@ -70,7 +70,7 @@ class AgentConfig:
     prompt_template: str = (
         "You are working on #{ticket}: {title}\n"
         "Worktree: {worktree_path}\n"
-        "Read .board/issues/{ticket}/plan.md for details."
+        "Read .kanban/issues/{ticket}/plan.md for details."
     )
 
 

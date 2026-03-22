@@ -52,7 +52,7 @@ pip install -e .
 
 ```bash
 cd <프로젝트 디렉토리>
-agentic-kanban init    # 최초 1회 — .board/ 생성, Dooray API key 설정
+agentic-kanban init    # 최초 1회 — .kanban/ 생성, Dooray API key 설정
 agentic-kanban         # TUI 실행
 ```
 
@@ -99,7 +99,7 @@ claude plugin add ./plugin
 /agentic-kanban:review 3724       # 코드 리뷰 + 수정
 ```
 
-스킬은 `.board/` 데이터를 TUI와 공유합니다. 스킬로 만든 plan.md를 TUI에서 확인하고, TUI에서 만든 이슈를 스킬에서 작업할 수 있습니다.
+스킬은 `.kanban/` 데이터를 TUI와 공유합니다. 스킬로 만든 plan.md를 TUI에서 확인하고, TUI에서 만든 이슈를 스킬에서 작업할 수 있습니다.
 
 ## How It Works
 
@@ -108,7 +108,7 @@ claude plugin add ./plugin
 │                    agentic-kanban                         │
 │                                                           │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐ │
-│  │ Plan 📝  │  │ Impl 🔨  │  │Review 🔍 │  │ Done ✅  │ │
+│  │ Plan 📝  │  │ Impl 🔨  │  │Review 🔍 │  │Completed✅│ │
 │  │ #101     │  │ #103 ⟳  │  │ #105     │  │ #106     │ │
 │  │ #102     │  │ #104     │  │          │  │          │ │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘ │
@@ -121,7 +121,7 @@ claude plugin add ./plugin
 ## Configuration
 
 ```yaml
-# .board/config.yaml (프로젝트별)
+# .kanban/config.yaml (프로젝트별)
 project:
   name: my-project
   worktree_base: worktrees   # 절대경로도 가능: ~/worktrees/my-project
@@ -147,7 +147,7 @@ theme: dracula
 ## Data Structure
 
 ```
-.board/
+.kanban/
 ├── config.yaml          # 프로젝트 설정
 ├── issues/
 │   └── {ticket}/

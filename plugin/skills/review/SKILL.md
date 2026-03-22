@@ -19,7 +19,7 @@ argument-hint: <ticket-number> [수정 요청]
 
 ## 처리 절차
 
-1. `.board/issues/{ticket}/issue.yaml` 읽기.
+1. `.kanban/issues/{ticket}/issue.yaml` 읽기.
 
 2. worktree의 변경사항 확인:
    ```bash
@@ -36,13 +36,13 @@ argument-hint: <ticket-number> [수정 요청]
    - 개선 사항 제안
    - 사용자 확인 후 자동 수정
 
-5. `.board/issues/{ticket}/worklog.jsonl` 에 리뷰/수정 내역 기록.
+5. `.kanban/issues/{ticket}/worklog.jsonl` 에 리뷰/수정 내역 기록.
 
 ## 산출물
 
 - 코드 수정 (수정 요청 시)
 - 리뷰 리포트 (리뷰 모드 시)
-- `.board/issues/{ticket}/worklog.jsonl` — 작업 로그
+- `.kanban/issues/{ticket}/worklog.jsonl` — 작업 로그
 
 ## 주의사항
 

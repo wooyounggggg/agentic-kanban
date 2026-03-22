@@ -1,4 +1,4 @@
-"""Central store for reading and writing the .board/ directory."""
+"""Central store for reading and writing the .kanban/ directory."""
 
 from __future__ import annotations
 
@@ -30,14 +30,14 @@ _DESCRIPTION_FILE = "description.md"
 
 
 def find_board_root(start: Optional[Path] = None) -> Optional[Path]:
-    """Walk up from *start* (default: cwd) looking for a ``.board/`` directory.
+    """Walk up from *start* (default: cwd) looking for a ``.kanban/`` directory.
 
-    Returns the ``.board/`` path if found, or ``None`` if the filesystem root
+    Returns the ``.kanban/`` path if found, or ``None`` if the filesystem root
     is reached without finding one.
     """
     current = (start or Path.cwd()).resolve()
     while True:
-        candidate = current / ".board"
+        candidate = current / ".kanban"
         if candidate.is_dir():
             return candidate
         parent = current.parent
@@ -48,18 +48,18 @@ def find_board_root(start: Optional[Path] = None) -> Optional[Path]:
 
 
 class BoardStore:
-    """Read/write interface to a ``.board/`` directory.
+    """Read/write interface to a ``.kanban/`` directory.
 
     Parameters
     ----------
     board_path:
-        Explicit path to the ``.board/`` directory.  When omitted,
+        Explicit path to the ``.kanban/`` directory.  When omitted,
         :func:`find_board_root` walks up from the current working directory.
 
     Raises
     ------
     FileNotFoundError
-        If *board_path* is ``None`` and no ``.board/`` directory can be
+        If *board_path* is ``None`` and no ``.kanban/`` directory can be
         located in the directory hierarchy.
     """
 
@@ -70,7 +70,7 @@ class BoardStore:
             found = find_board_root()
             if found is None:
                 raise FileNotFoundError(
-                    "No .board/ directory found in the current directory or any parent."
+                    "No .kanban/ directory found in the current directory or any parent."
                 )
             self._root = found
 
@@ -80,18 +80,18 @@ class BoardStore:
 
     @property
     def root(self) -> Path:
-        """Absolute path to the ``.board/`` directory."""
+        """Absolute path to the ``.kanban/`` directory."""
         return self._root
 
     def issue_dir(self, ticket: str) -> Path:
-        """Return the directory for *ticket* under ``.board/issues/``."""
+        """Return the directory for *ticket* under ``.kanban/issues/``."""
         return self._root / "issues" / ticket
 
     def _archive_dir(self, ticket: str) -> Path:
         return self._root / "archive" / ticket
 
     def ensure_dirs(self) -> None:
-        """Create ``.board/issues``, ``.board/archive``, and ``.board/cache`` if absent."""
+        """Create ``.kanban/issues``, ``.kanban/archive``, and ``.kanban/cache`` if absent."""
         for sub in ("issues", "archive", "cache"):
             (self._root / sub).mkdir(parents=True, exist_ok=True)
 
@@ -100,7 +100,7 @@ class BoardStore:
     # ------------------------------------------------------------------
 
     def list_issues(self) -> List[str]:
-        """Return ticket IDs whose ``issue.yaml`` exists under ``.board/issues/``."""
+        """Return ticket IDs whose ``issue.yaml`` exists under ``.kanban/issues/``."""
         issues_dir = self._root / "issues"
         if not issues_dir.is_dir():
             return []
@@ -120,7 +120,7 @@ class BoardStore:
         return Issue.from_yaml(path)
 
     def write_issue(self, ticket: str, issue: Issue) -> None:
-        """Persist *issue* to ``.board/issues/<ticket>/issue.yaml``."""
+        """Persist *issue* to ``.kanban/issues/<ticket>/issue.yaml``."""
         path = self.issue_dir(ticket) / _ISSUE_FILE
         issue.to_yaml(path)
 
@@ -137,7 +137,7 @@ class BoardStore:
         return Checklist.from_yaml(path)
 
     def write_checklist(self, ticket: str, checklist: Checklist) -> None:
-        """Persist *checklist* to ``.board/issues/<ticket>/checklist.yaml``."""
+        """Persist *checklist* to ``.kanban/issues/<ticket>/checklist.yaml``."""
         path = self.issue_dir(ticket) / _CHECKLIST_FILE
         checklist.to_yaml(path)
 
@@ -151,7 +151,7 @@ class BoardStore:
         return _read_worklog(path)
 
     def append_worklog(self, ticket: str, entry: WorklogEntry) -> None:
-        """Append *entry* to ``.board/issues/<ticket>/worklog.jsonl``."""
+        """Append *entry* to ``.kanban/issues/<ticket>/worklog.jsonl``."""
         path = self.issue_dir(ticket) / _WORKLOG_FILE
         _append_worklog(path, entry)
 
@@ -168,7 +168,7 @@ class BoardStore:
         return AgentSession.from_yaml(path)
 
     def write_agent(self, ticket: str, agent: AgentSession) -> None:
-        """Persist *agent* to ``.board/issues/<ticket>/agent.yaml``."""
+        """Persist *agent* to ``.kanban/issues/<ticket>/agent.yaml``."""
         path = self.issue_dir(ticket) / _AGENT_FILE
         agent.to_yaml(path)
 
@@ -177,7 +177,7 @@ class BoardStore:
     # ------------------------------------------------------------------
 
     def read_plan(self, ticket: str) -> str:
-        """Return the raw markdown content of ``.board/issues/<ticket>/plan.md``.
+        """Return the raw markdown content of ``.kanban/issues/<ticket>/plan.md``.
 
         Returns an empty string if the file does not exist.
         """
@@ -187,7 +187,7 @@ class BoardStore:
         return path.read_text(encoding="utf-8")
 
     def write_plan(self, ticket: str, content: str) -> None:
-        """Write *content* to ``.board/issues/<ticket>/plan.md``."""
+        """Write *content* to ``.kanban/issues/<ticket>/plan.md``."""
         path = self.issue_dir(ticket) / _PLAN_FILE
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
@@ -197,7 +197,7 @@ class BoardStore:
     # ------------------------------------------------------------------
 
     def read_description(self, ticket: str) -> str:
-        """Return the raw content of ``.board/issues/<ticket>/description.md``.
+        """Return the raw content of ``.kanban/issues/<ticket>/description.md``.
 
         Returns an empty string if the file does not exist.
         """
@@ -207,7 +207,7 @@ class BoardStore:
         return path.read_text(encoding="utf-8")
 
     def write_description(self, ticket: str, content: str) -> None:
-        """Write *content* to ``.board/issues/<ticket>/description.md``."""
+        """Write *content* to ``.kanban/issues/<ticket>/description.md``."""
         path = self.issue_dir(ticket) / _DESCRIPTION_FILE
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
@@ -217,7 +217,7 @@ class BoardStore:
     # ------------------------------------------------------------------
 
     def read_comments(self, ticket: str) -> str:
-        """Return the raw content of ``.board/issues/<ticket>/comments.md``.
+        """Return the raw content of ``.kanban/issues/<ticket>/comments.md``.
 
         Returns an empty string if the file does not exist.
         """
@@ -227,7 +227,7 @@ class BoardStore:
         return path.read_text(encoding="utf-8")
 
     def write_comments(self, ticket: str, content: str) -> None:
-        """Write *content* to ``.board/issues/<ticket>/comments.md``."""
+        """Write *content* to ``.kanban/issues/<ticket>/comments.md``."""
         path = self.issue_dir(ticket) / _COMMENTS_FILE
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
@@ -245,7 +245,7 @@ class BoardStore:
         return BoardConfig.from_yaml(path)
 
     def write_config(self, config: BoardConfig) -> None:
-        """Persist *config* to ``.board/config.yaml``."""
+        """Persist *config* to ``.kanban/config.yaml``."""
         path = self._root / _CONFIG_FILE
         config.to_yaml(path)
 
@@ -254,7 +254,7 @@ class BoardStore:
     # ------------------------------------------------------------------
 
     def archive_issue(self, ticket: str) -> None:
-        """Move ``.board/issues/<ticket>/`` to ``.board/archive/<ticket>/``."""
+        """Move ``.kanban/issues/<ticket>/`` to ``.kanban/archive/<ticket>/``."""
         src = self.issue_dir(ticket)
         if not src.exists():
             raise FileNotFoundError(f"Issue directory not found: {src}")

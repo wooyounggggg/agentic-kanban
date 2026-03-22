@@ -11,7 +11,7 @@ from typing import List, Optional
 @dataclass
 class ProjectEntry:
     name: str = ""
-    path: str = ""  # absolute path to project root (where .board/ lives)
+    path: str = ""  # absolute path to project root (where .kanban/ lives)
 
 
 @dataclass

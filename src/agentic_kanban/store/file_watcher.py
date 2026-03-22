@@ -1,4 +1,4 @@
-"""File watcher that emits callbacks when .board/ files change."""
+"""File watcher that emits callbacks when .kanban/ files change."""
 
 from __future__ import annotations
 
@@ -72,12 +72,12 @@ class _BoardEventHandler(FileSystemEventHandler):
 
 
 class BoardFileWatcher:
-    """Watch ``.board/issues/`` and invoke a callback when tracked files change.
+    """Watch ``.kanban/issues/`` and invoke a callback when tracked files change.
 
     Parameters
     ----------
     board_path:
-        Absolute path to the ``.board/`` directory.
+        Absolute path to the ``.kanban/`` directory.
     on_change:
         Called with ``(ticket: str, file_type: str)`` whenever a watched file
         is created or modified.  *file_type* is one of

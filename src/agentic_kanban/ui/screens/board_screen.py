@@ -23,7 +23,7 @@ from agentic_kanban.ui.widgets.sidebar import Sidebar
 
 
 # ---------------------------------------------------------------------------
-# Mock data (used when no .board/ directory is found)
+# Mock data (used when no .kanban/ directory is found)
 # ---------------------------------------------------------------------------
 
 def _mock_issues() -> List[Issue]:
@@ -95,7 +95,7 @@ class BoardScreen(Screen):
         self._store = None
         self._config: BoardConfig = BoardConfig()
         self._registry = ProjectRegistry.load()
-        # Auto-register current project if .board/ exists
+        # Auto-register current project if .kanban/ exists
         self._auto_register_project()
         # {status_name: [Issue]}
         self._issues_by_status: Dict[str, List[Issue]] = {}
@@ -107,9 +107,9 @@ class BoardScreen(Screen):
         self._sync_service_cache = None
 
     def _auto_register_project(self) -> None:
-        """Auto-register the current directory as a project if .board/ exists."""
+        """Auto-register the current directory as a project if .kanban/ exists."""
         cwd = Path.cwd()
-        board_dir = cwd / ".board"
+        board_dir = cwd / ".kanban"
         if board_dir.exists():
             name = cwd.name
             if name not in self._registry.names():
@@ -143,7 +143,7 @@ class BoardScreen(Screen):
             if bp is None:
                 entry = self._registry.get_current()
                 if entry and entry.path:
-                    candidate = Path(entry.path) / ".board"
+                    candidate = Path(entry.path) / ".kanban"
                     if candidate.exists():
                         bp = candidate
             store = BoardStore(bp)
@@ -172,7 +172,7 @@ class BoardScreen(Screen):
                 self._issues_by_status.setdefault(issue.status, []).append(issue)
 
         except Exception:
-            # No .board/ or load failed — use mock data
+            # No .kanban/ or load failed — use mock data
             for issue in _mock_issues():
                 self._issues_by_status.setdefault(issue.status, []).append(issue)
 
@@ -399,7 +399,7 @@ class BoardScreen(Screen):
         selected = names[self._sidebar_index]
         entry = self._registry.switch(selected)
         if entry:
-            self.board_path = str(Path(entry.path) / ".board")
+            self.board_path = str(Path(entry.path) / ".kanban")
             self._issues_by_status.clear()
             self._tc_map.clear()
             self._agent_map.clear()
@@ -522,7 +522,7 @@ class BoardScreen(Screen):
                 wt_base = result.get("worktree_base", "worktrees")
                 dooray_pid = result.get("dooray_project_id", "")
                 self._registry.add(name, path)
-                board_dir = Path(path) / ".board"
+                board_dir = Path(path) / ".kanban"
                 if not board_dir.exists():
                     from agentic_kanban.models.config import BoardConfig
                     board_dir.mkdir(parents=True)
@@ -676,7 +676,7 @@ class BoardScreen(Screen):
                 spec = result["spec"]
                 context = result.get("context", "")
                 tc = result.get("tc", "")
-                issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
+                issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".kanban/issues/{ticket}"
                 prompt = build_plan_prompt(issue_dir, spec, context, tc)
                 if agent_svc:
                     agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)
@@ -693,7 +693,7 @@ class BoardScreen(Screen):
             def on_result(confirmed):
                 if not confirmed:
                     return
-                issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
+                issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".kanban/issues/{ticket}"
                 prompt = build_implement_prompt(issue_dir)
                 if agent_svc:
                     agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)
@@ -707,7 +707,7 @@ class BoardScreen(Screen):
                 if result is None:
                     return
                 review = result["review"]
-                issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
+                issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".kanban/issues/{ticket}"
                 prompt = build_review_prompt(issue_dir, review)
                 if agent_svc:
                     agent_svc.run_prompt(ticket, prompt, on_complete=_on_agent_done)

@@ -1,4 +1,4 @@
-"""Store layer for agentic-kanban — read/write the .board/ directory."""
+"""Store layer for agentic-kanban — read/write the .kanban/ directory."""
 
 from __future__ import annotations
 

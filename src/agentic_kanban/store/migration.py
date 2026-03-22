@@ -1,4 +1,4 @@
-"""Migrate from legacy ``.wt-state/`` format to the new ``.board/`` format."""
+"""Migrate from legacy ``.wt-state/`` format to the new ``.kanban/`` format."""
 
 from __future__ import annotations
 
@@ -95,7 +95,7 @@ def migrate_from_wt_state(
     board_path: Path,
     branch_prefix: str = "feature-",
 ) -> List[str]:
-    """Migrate ``worktrees/feature-*/`` directories to ``.board/``.
+    """Migrate ``worktrees/feature-*/`` directories to ``.kanban/``.
 
     For each ``worktrees/<branch_prefix><ticket>/`` that has a ``.wt-state/``
     subdirectory:
@@ -113,7 +113,7 @@ def migrate_from_wt_state(
         Root directory of the project (the directory that contains
         ``worktrees/``).
     board_path:
-        Path to the target ``.board/`` directory (will be created if absent).
+        Path to the target ``.kanban/`` directory (will be created if absent).
     branch_prefix:
         Prefix used by worktree directories, default ``"feature-"``.
 

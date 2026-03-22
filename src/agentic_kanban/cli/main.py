@@ -24,12 +24,12 @@ console = Console()
 def _load_store_and_config() -> tuple:
     """Return (BoardStore, BoardConfig) for the current project.
 
-    Exits with an error message if no ``.board/`` directory is found.
+    Exits with an error message if no ``.kanban/`` directory is found.
     """
     board_path = find_board_root()
     if board_path is None:
         console.print(
-            "[red]No .board/ directory found. Run [bold]agentic-kanban init[/bold] first.[/red]"
+            "[red]No .kanban/ directory found. Run [bold]agentic-kanban init[/bold] first.[/red]"
         )
         sys.exit(1)
     store = BoardStore(board_path)
@@ -64,12 +64,12 @@ def cli(ctx: click.Context) -> None:
 
 @cli.command()
 def init() -> None:
-    """Initialize .board/ directory in the current project."""
+    """Initialize .kanban/ directory in the current project."""
     cwd = Path.cwd()
-    board_dir = cwd / ".board"
+    board_dir = cwd / ".kanban"
 
     if board_dir.exists():
-        console.print(f"[yellow].board/ already exists at {board_dir}[/yellow]")
+        console.print(f"[yellow].kanban/ already exists at {board_dir}[/yellow]")
         return
 
     board_dir.mkdir(parents=True)
@@ -100,7 +100,7 @@ def init() -> None:
     store = BoardStore(board_dir)
     store.write_config(config)
 
-    console.print(f"[green]Initialized .board/ at {board_dir}[/green]")
+    console.print(f"[green]Initialized .kanban/ at {board_dir}[/green]")
 
 
 # ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ def init() -> None:
 
 @cli.command()
 def migrate() -> None:
-    """Migrate worktree data from .wt-state/ format to .board/."""
+    """Migrate worktree data from .wt-state/ format to .kanban/."""
     cwd = Path.cwd()
     worktrees_dir = cwd / "worktrees"
 

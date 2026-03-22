@@ -19,9 +19,9 @@ plan.md를 읽고 코드를 구현합니다. 프로젝트의 CLAUDE.md 컨벤션
 
 ## 처리 절차
 
-1. `.board/issues/{ticket}/plan.md` 읽기. 없으면 "/agentic-kanban:plan을 먼저 실행하세요" 안내.
+1. `.kanban/issues/{ticket}/plan.md` 읽기. 없으면 "/agentic-kanban:plan을 먼저 실행하세요" 안내.
 
-2. `.board/issues/{ticket}/checklist.yaml` 읽기 (TC가 있으면 참고).
+2. `.kanban/issues/{ticket}/checklist.yaml` 읽기 (TC가 있으면 참고).
 
 3. plan.md의 구현 단계를 순서대로 실행:
    - 파일 생성/수정
@@ -31,14 +31,14 @@ plan.md를 읽고 코드를 구현합니다. 프로젝트의 CLAUDE.md 컨벤션
 4. 프로젝트의 `CLAUDE.md`를 참조하여 코드 컨벤션/품질 유지.
 
 5. 구현 완료 후:
-   - `.board/issues/{ticket}/worklog.jsonl` 에 작업 기록
+   - `.kanban/issues/{ticket}/worklog.jsonl` 에 작업 기록
    - checklist.yaml의 TC 항목 체크 (통과 시)
    - 변경 파일 목록 요약
 
 ## 산출물
 
 - 코드 변경 (worktree 내)
-- `.board/issues/{ticket}/worklog.jsonl` — 구현 내역 기록
+- `.kanban/issues/{ticket}/worklog.jsonl` — 구현 내역 기록
 
 ## 주의사항
 

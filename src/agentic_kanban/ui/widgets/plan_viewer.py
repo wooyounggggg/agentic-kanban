@@ -7,7 +7,7 @@ from textual.widgets import Markdown
 from textual.containers import VerticalScroll
 
 
-_EMPTY_PLAN = "_No plan file found. Create `.board/issues/<ticket>/plan.md`._"
+_EMPTY_PLAN = "_No plan file found. Create `.kanban/issues/<ticket>/plan.md`._"
 
 
 class PlanViewer(VerticalScroll):

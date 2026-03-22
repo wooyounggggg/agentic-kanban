@@ -290,7 +290,7 @@ class DetailScreen(Screen):
             context = result.get("context", "")
             tc = result.get("tc", "")
             ticket = self.issue.ticket
-            issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
+            issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".kanban/issues/{ticket}"
             prompt = build_plan_prompt(issue_dir, spec, context, tc)
             if self._agent_service:
                 def _on_agent_done(t, output):
@@ -315,7 +315,7 @@ class DetailScreen(Screen):
             if not confirmed:
                 return
             ticket = self.issue.ticket
-            issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
+            issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".kanban/issues/{ticket}"
             prompt = build_implement_prompt(issue_dir)
             if self._agent_service:
                 def _on_agent_done(t, output):
@@ -335,7 +335,7 @@ class DetailScreen(Screen):
                 return
             review = result["review"]
             ticket = self.issue.ticket
-            issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".board/issues/{ticket}"
+            issue_dir = str(self._store.issue_dir(ticket)) if self._store else f".kanban/issues/{ticket}"
             prompt = build_review_prompt(issue_dir, review)
             if self._agent_service:
                 def _on_agent_done(t, output):
